@@ -42,7 +42,16 @@
     if (!panel) return false;
     if (panel.tagName === 'DIALOG') return !panel.open;
     if (panel.hasAttribute('popover')) return !panel.matches(':popover-open');
-    const owner = panel.id && document.querySelector(`[aria-controls="${panel.id}"],[aria-owns="${panel.id}"]`);
+    // An id may legally contain quotes or brackets; interpolating it raw
+    // throws a SyntaxError that takes the whole snapshot down, and the caller
+    // reads that as "the page is navigating".
+    let owner = null;
+    if (panel.id) {
+      try {
+        const id = CSS.escape(panel.id);
+        owner = document.querySelector(`[aria-controls="${id}"],[aria-owns="${id}"]`);
+      } catch { owner = null; }
+    }
     if (owner) return owner.getAttribute('aria-expanded') === 'false';
     return false;
   };

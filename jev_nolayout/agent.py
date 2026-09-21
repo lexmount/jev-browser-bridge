@@ -109,7 +109,22 @@ class Agent:
                 yield self.run_state
                 continue
 
-            after = self.browser.observe()
+            try:
+                after = self.browser.observe()
+            except PageChanged:
+                # act() swallows PageChanged inside settle(), so a navigation
+                # still in flight when the settle timer expires surfaces here.
+                # Record the action as taken -- it was -- and let the next
+                # iteration read the page it landed on.
+                self.run_state.history.append(
+                    {"operation": operation, "label": action.label,
+                     "text": text or None, "page_changed": True})
+                step.outcome += " (navigating)"
+                step.elapsed_ms = round((time.perf_counter() - step_started) * 1000)
+                self._record(step)
+                yield self.run_state
+                continue
+
             changed = after.marker != before
             # Say what the action produced, not just that something moved. A
             # fill that opens an autocomplete list replaces the field it was

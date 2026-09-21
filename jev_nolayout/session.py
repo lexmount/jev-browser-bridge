@@ -71,6 +71,8 @@ def moli_session(browser_mode: str = "light"):
     cdp = _cdp_via_script(CDP_SCRIPT, ws) if CDP_SCRIPT else _cdp_via_websocket(ws)
     try:
         targets = cdp("Target.getTargets")["targetInfos"]
+        if not targets:
+            raise RuntimeError("Session reported no browser targets")
         page = next((t for t in targets if t["type"] == "page"), targets[0])
         attached = cdp("Target.attachToTarget", targetId=page["targetId"], flatten=True)
         from .browser import Browser
