@@ -102,11 +102,11 @@ with moli_session() as browser:
         print(state.steps[-1])
 ```
 
-`examples/flights.py` runs a live Google Flights search and verifies the result against the page itself, not against the model's claim of success.
+## What it handles
 
-## Status
+Multi-step navigation, autocomplete fields, calendar widgets built from unlabelled `<div>`s, and controls that share a name — all without a single layout query.
 
-Multi-step navigation is solid. Heavy single-page applications that swap a field for a popup mid-interaction are not yet reliable — see `examples/flights.py`. Progress and open problems are tracked in the issues.
+`examples/flights.py` drives a live Google Flights search and checks the result against the page itself rather than against the model's claim of success.
 
 ## License
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .browser import Browser, PageChanged
 from .model import choose, field_text
@@ -45,6 +45,9 @@ class Agent:
     def run(self):
         started = time.perf_counter()
         blank_reads = 0
+        waits = 0
+        # Controls that have been tried and changed nothing, by node id.
+        spent: dict[int, int] = {}
 
         for n in range(1, MAX_STEPS + 1):
             step_started = time.perf_counter()
@@ -63,6 +66,16 @@ class Agent:
                 self.run_state.status = "blocked"
                 break
 
+            # Withdraw controls that have already been tried twice with no
+            # effect. Some clicks land correctly but leave the marker
+            # unchanged -- a dialog confirm that only updates state the
+            # snapshot does not read -- and the model, seeing no progress,
+            # picks the same control again. Offering it once more cannot
+            # help; offering everything else can.
+            usable = [a for a in snapshot.actions if spent.get(a.node, 0) < 2]
+            if usable and len(usable) < len(snapshot.actions):
+                snapshot = replace(snapshot, actions=usable)
+
             decision = choose(snapshot, self.goal, self.run_state.history)
             operation = decision["operation"]
             action = decision["action"]
@@ -80,11 +93,25 @@ class Agent:
 
             if operation == "WAIT":
                 self.browser.settle()
+                waits += 1
                 step.outcome = "waited"
+                # Waiting is for a page that is still arriving. Three in a row
+                # means the change being waited for is not coming -- usually a
+                # click that took effect without moving the marker, so the
+                # model reads it as "nothing happened" and stalls. Say so in
+                # the history rather than burning the step budget.
+                if waits >= 3:
+                    self.run_state.history.append(
+                        {"operation": "WAIT", "result":
+                         "waited three times and the page did not change -- "
+                         "the previous action has already taken effect; "
+                         "move on to the next requirement"})
+                    waits = 0
                 step.elapsed_ms = round((time.perf_counter() - step_started) * 1000)
                 self._record(step)
                 yield self.run_state
                 continue
+            waits = 0
 
             text = ""
             if operation == "TYPE_TEXT":
@@ -126,19 +153,42 @@ class Agent:
                 continue
 
             changed = after.marker != before
-            # Say what the action produced, not just that something moved. A
-            # fill that opens an autocomplete list replaces the field it was
-            # typed into, so the next observation no longer shows the value --
-            # without this note the model reads that as "the text did not take"
-            # and types it again, forever. Naming the new options tells it the
-            # next move is to pick one.
+
+            # Report the consequence, not just that something moved.
+            #
+            # Typing into an autocomplete field clears the field: the framework
+            # owns its value and re-renders from state that does not have the
+            # typed text yet. Measured on Google Flights -- the value reads
+            # "Zurich" at the moment of writing and "" a second later, while
+            # five suggestions appear. It is filled back in only once a
+            # suggestion is chosen.
+            #
+            # A history line saying `page_changed: true` cannot express that.
+            # The model looks for its text, does not find it, concludes the
+            # typing failed, and types again -- forever. So name what appeared
+            # and say plainly what it means.
+            before_nodes = {b.node for b in before_actions}
             opened = [a.label for a in after.actions
                       if a.role in {"option", "gridcell", "menuitem"}
-                      and a.node not in {b.node for b in before_actions}][:6] if changed else []
-            self.run_state.history.append(
-                {"operation": operation, "label": action.label,
-                 "text": text or None, "page_changed": changed,
-                 "now_offered": opened or None})
+                      and a.node not in before_nodes][:8]
+
+            entry = {"operation": operation, "label": action.label,
+                     "text": text or None, "page_changed": changed}
+            if operation == "TYPE_TEXT" and opened:
+                entry["result"] = (
+                    f"typed {text!r}; the field cleared itself and "
+                    f"{len(opened)} suggestions opened -- choose one to commit "
+                    f"the value. Do not type here again.")
+                entry["suggestions"] = opened
+            elif opened:
+                entry["now_offered"] = opened
+            elif not changed:
+                entry["result"] = "nothing on the page changed"
+            self.run_state.history.append(entry)
+            if changed:
+                spent.pop(action.node, None)
+            else:
+                spent[action.node] = spent.get(action.node, 0) + 1
             step.outcome += "" if changed else " (no change)"
             step.elapsed_ms = round((time.perf_counter() - step_started) * 1000)
             self._record(step)
