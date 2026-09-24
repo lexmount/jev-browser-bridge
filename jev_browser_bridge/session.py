@@ -232,7 +232,7 @@ def lexmount_session(browser_mode: str = "light"):
         from lexmount import Lexmount
     except ImportError:
         raise RuntimeError(
-            'Lexmount support is an extra: pip install "jev-nolayout[lexmount]"') from None
+            'Lexmount support is an extra: pip install "jev-browser-bridge[lexmount]"') from None
 
     client = Lexmount()
     session = client.sessions.create(browser_mode=browser_mode, poll_timeout_sec=180)

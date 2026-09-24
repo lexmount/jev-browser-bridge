@@ -1,4 +1,4 @@
-"""jev-nolayout <url> <goal> -- run one goal and print the trace."""
+"""jev-browser-bridge <url> <goal> -- run one goal and print the trace."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +20,7 @@ def load_env(path: str = ".env") -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="jev-nolayout")
+    parser = argparse.ArgumentParser(prog="jev-browser-bridge")
     parser.add_argument("url")
     parser.add_argument("goal")
     parser.add_argument("--browser", default="light",

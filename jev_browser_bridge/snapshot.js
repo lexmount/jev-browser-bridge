@@ -12,7 +12,7 @@
 (() => {
   if (!document.body) return null;
 
-  const cache = window.__jevNoLayout ||= {ids: new WeakMap(), nodes: new Map(), next: 1};
+  const cache = window.__jevBridge ||= {ids: new WeakMap(), nodes: new Map(), next: 1};
   const identity = e => {
     if (!cache.ids.has(e)) cache.ids.set(e, cache.next++);
     const id = cache.ids.get(e);

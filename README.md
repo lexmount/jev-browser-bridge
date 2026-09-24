@@ -1,4 +1,4 @@
-# Jev NoLayout
+# Jev Browser Bridge
 
 ## Plug **any** browser into Jev.
 
@@ -10,7 +10,7 @@
 If it speaks CDP, it runs Jev.
 
 <p align="center">
-  <img src="assets/overview.png" alt="Jev NoLayout: a bridge from any CDP browser to Jev" width="100%">
+  <img src="assets/overview.png" alt="Jev Browser Bridge: a bridge from any CDP browser to Jev" width="100%">
 </p>
 
 ## Results
@@ -34,7 +34,7 @@ If it speaks CDP, it runs Jev.
 **Moli**, a cloud browser from Lexmount:
 
 ```python
-from jev_nolayout import Agent, lexmount_session
+from jev_browser_bridge import Agent, lexmount_session
 
 with lexmount_session() as browser:
     browser.navigate("https://en.wikipedia.org/wiki/Espresso")
@@ -49,7 +49,7 @@ lightpanda serve --port 9222
 ```
 
 ```python
-from jev_nolayout import Agent, connect
+from jev_browser_bridge import Agent, connect
 
 with connect("http://127.0.0.1:9222") as browser:
     browser.navigate("https://en.wikipedia.org/wiki/Espresso")
@@ -61,9 +61,9 @@ Any other browser works the same way: pass its CDP address to `connect()`.
 
 ## How it works
 
-Most browser-agent frameworks decide what is on a page by asking the **layout engine**. Jev NoLayout asks the **DOM**.
+Most browser-agent frameworks decide what is on a page by asking the **layout engine**. Jev Browser Bridge asks the **DOM**.
 
-| | Position-based reader | Jev NoLayout |
+| | Position-based reader | Jev Browser Bridge |
 | --- | --- | --- |
 | Is this control live? | `checkVisibility()` | `hidden`, `inert`, `aria-hidden`, `disabled` |
 | Can the agent reach it? | inside the viewport, by `getBoundingClientRect()` | anywhere in the document |
@@ -72,7 +72,7 @@ Most browser-agent frameworks decide what is on a page by asking the **layout en
 
 On Chrome both work. On a browser whose layout is lazy, missing or fake, only one of them does — same page, controls / characters read:
 
-| Browser | Position-based | Jev NoLayout |
+| Browser | Position-based | Jev Browser Bridge |
 | --- | --- | --- |
 | Moli · Google Flights | **5 / 7** | 155 / 34,189 |
 | Lightpanda · Wikipedia | **18 / 221** | 2,875 / 137,723 |
@@ -90,12 +90,12 @@ On Chrome both work. On a browser whose layout is lazy, missing or fake, only on
 ## Try it
 
 ```bash
-git clone https://github.com/lexmount/jev-nolayout.git
-cd jev-nolayout
+git clone https://github.com/lexmount/jev-browser-bridge.git
+cd jev-browser-bridge
 uv sync --extra lexmount
 cp .env.example .env          # JEV_API_KEY, and Lexmount credentials for Moli
 
-uv run jev-nolayout https://en.wikipedia.org/wiki/Espresso "Open the article about Latte"
+uv run jev-browser-bridge https://en.wikipedia.org/wiki/Espresso "Open the article about Latte"
 ```
 
 ```text
