@@ -23,7 +23,8 @@ def test_answer_deep_in_a_long_page_is_kept():
     rows.append("Jupiter has 95 officially recognised moons as of 2023.")
     rows += [f"Footer boilerplate row {i}" for i in range(50)]
     assert "95 officially recognised moons" not in " ".join(rows)[:6000]
-    assert "95 officially recognised moons" in select(rows, "how many moons does Jupiter have", 2000)
+    kept = select(rows, "how many moons does Jupiter have", 2000)
+    assert "95 officially recognised moons" in kept
 
 
 def test_table_row_keeps_label_and_value_together():
