@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/overview.png" alt="Jev NoLayout: a bridge from any CDP browser to Jev" width="100%">
-</p>
+# Jev NoLayout
 
 ## Plug **any** browser into Jev.
 
@@ -10,6 +8,10 @@
 
 **Cloud, local or self-hosted. Chromium or not. Even browsers that never draw a page.**
 If it speaks CDP, it runs Jev.
+
+<p align="center">
+  <img src="assets/overview.png" alt="Jev NoLayout: a bridge from any CDP browser to Jev" width="100%">
+</p>
 
 ## Results
 
