@@ -19,7 +19,7 @@ from jev_browser_bridge.session import _auth_from_url, _reachable
 def test_answer_deep_in_a_long_page_is_kept():
     # The failure this replaced: a fixed-size prefix of the page, which on
     # long articles was all navigation and never reached the answer.
-    rows = [f"Navigation link number {i} to another section of the site" for i in range(400)]
+    rows = [f"Navigation link {i} to another section of the site" for i in range(400)]
     rows.append("Jupiter has 95 officially recognised moons as of 2023.")
     rows += [f"Footer boilerplate row {i}" for i in range(50)]
     assert "95 officially recognised moons" not in " ".join(rows)[:6000]
