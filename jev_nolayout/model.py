@@ -74,11 +74,14 @@ def post(url: str, key: str, body: dict) -> dict:
         if response.is_error:
             # Carry the provider's own message: a 400 here is almost always a
             # malformed question, and the body says which one.
+            tried = f" after {attempt + 1} attempts" if attempt else ""
             raise RuntimeError(
-                f"Model provider returned HTTP {response.status_code}: "
+                f"Model provider returned HTTP {response.status_code}{tried}: "
                 f"{response.text[:400]}")
         return response.json()
-    raise RuntimeError(f"Model unavailable ({last})")
+    # Every pass through the loop returns or raises; this keeps the function's
+    # contract explicit for readers and type checkers alike.
+    raise AssertionError("unreachable")
 
 
 # The decision API accepts at most 255 choices per question.

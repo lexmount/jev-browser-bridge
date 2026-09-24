@@ -294,6 +294,11 @@ class Browser:
                                  flatten=True)
         except RuntimeError:
             return False
+        # Let go of the page being left. Keeping its session attached leaks a
+        # handle per followed link, and a browser that caps sessions would
+        # eventually refuse the next attach.
+        with contextlib.suppress(RuntimeError):
+            self._cdp("Target.detachFromTarget", sessionId=self.session)
         self.session, self.target = attached["sessionId"], page["targetId"]
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
