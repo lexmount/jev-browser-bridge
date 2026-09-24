@@ -15,7 +15,7 @@ If it speaks CDP, it runs Jev.
 
 ## Results
 
-Same agent, same five goals on every browser.
+**Jev completing the same five web tasks on every browser** — each task run twice, and a run passes only if it ends on the right page.
 
 | Browser | Kind | Draws pages? | Pass rate | Avg. steps |
 | --- | --- | :-: | :-: | :-: |
