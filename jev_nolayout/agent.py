@@ -46,13 +46,19 @@ class Agent:
         started = time.perf_counter()
         blank_reads = 0
         waits = 0
+        # The page as read at the end of the previous step, if nothing has
+        # happened since. Each step used to end with a read (to see what the
+        # action changed) and the next begin with another of the same page --
+        # twice the work for one decision. On Kitesurf, which meters CPU per
+        # page, that second read is what ran the budget out.
+        carried = None
         # Controls that have been tried and changed nothing, by node id.
         spent: dict[int, int] = {}
 
         for n in range(1, MAX_STEPS + 1):
             step_started = time.perf_counter()
             try:
-                snapshot = self.browser.observe()
+                snapshot, carried = carried or self.browser.observe(), None
             except PageChanged:
                 blank_reads += 1
                 if blank_reads >= 3:
@@ -152,6 +158,7 @@ class Agent:
                 yield self.run_state
                 continue
 
+            carried = after
             changed = after.marker != before
 
             # Report the consequence, not just that something moved.

@@ -25,20 +25,29 @@
 
   // Liveness by semantics. A zero-sized box is not evidence of absence when
   // the box was measured two renders ago.
-  const live = e =>
-       !e.closest('[aria-hidden="true"],[inert],[hidden]')
-    && !e.hasAttribute('hidden')
-    && e.getAttribute('aria-hidden') !== 'true'
-    && !e.matches(':disabled')
-    && !e.closest('[aria-disabled="true"]');
+  //
+  //
+  // Asked once, natively, not once per element. What is dead is found with a
+  // single selector query -- every hidden, inert or aria-disabled element and
+  // everything under it -- and each element is then looked up in that set.
+  // Walking ancestors in script was half the snapshot's cost on a slow engine:
+  // Cloudflare's Kitesurf runs this inside a per-page CPU budget and ran out
+  // of it on long articles, while its selector matching is native.
+  const DEAD = ['[aria-hidden="true"]', '[inert]', '[hidden]', '[aria-disabled="true"]'];
+  const dead = new Set(document.querySelectorAll(DEAD.flatMap(d => [d, `${d} *`]).join(',')));
+  const live = e => !dead.has(e) && !e.matches(':disabled');
+  const liveHere = e => !dead.has(e) && e.disabled !== true;
 
   // A dialog that has not been opened is still in the DOM and still passes the
   // liveness test above -- `aria-hidden` is often only set once it opens. The
   // viewport cull used to remove these for free. Without it, Google Flights
   // offers "Enter your origin" (the title button of a closed dialog) alongside
   // the real "Where from?" field, and a chooser cannot tell them apart.
+  const PANELS = 'dialog,[role="dialog"],[role="listbox"],[role="menu"],[popover]';
+  const anyPanel = document.querySelector(PANELS) !== null;
   const shut = e => {
-    const panel = e.closest('dialog,[role="dialog"],[role="listbox"],[role="menu"],[popover]');
+    if (!anyPanel) return false;            // most pages have none: skip the walk
+    const panel = e.closest(PANELS);
     if (!panel) return false;
     if (panel.tagName === 'DIALOG') return !panel.open;
     if (panel.hasAttribute('popover')) return !panel.matches(':popover-open');
@@ -131,12 +140,10 @@
     // A gridcell that merely wraps a button is not the button.
     if (rname === 'gridcell' && e.querySelector('button,[role="button"]')) continue;
 
+    // Where a control sits (region, depth) only matters when its name is
+    // shared, so disambiguate() works it out for those alone.
     const base = {node: identity(e), role: rname, label, closed: shut(e),
-                  region: region(e), depth: (() => {
-                    let d = 0, p = e;
-                    while ((p = p.parentElement)) d++;
-                    return d;
-                  })()};
+                  href: e.tagName === 'A' ? e.href : ''};
     for (const key of ['checked', 'selected', 'expanded']) {
       const value = e.getAttribute('aria-' + key);
       if (value !== null) base[key] = value;
@@ -179,6 +186,21 @@
     }
     for (const group of groups.values()) {
       if (group.length < 2) continue;
+      // Links that share a name and a destination are one control repeated,
+      // not several controls that need telling apart. Wikipedia links the
+      // same article from the lede, the body and two navboxes; numbering them
+      // "Berne Convention · 1 of 5" ... "· 5 of 5" made the one unnumbered
+      // near-match -- a citation pointing off-site -- look like the cleanest
+      // choice, and the model took it every time.
+      const hrefs = new Set(group.map(a => a.href || ''));
+      if (hrefs.size === 1 && !hrefs.has('')) continue;
+      for (const a of group) {
+        const e = cache.nodes.get(a.node);
+        a.region = e ? region(e) : '';
+        let d = 0, p = e;
+        while (p && (p = p.parentElement)) d++;
+        a.depth = d;
+      }
       // Order is document order by depth, so the suffix is stable between
       // observations even when the page re-renders around the control.
       group.sort((x, y) => x.depth - y.depth);
@@ -191,22 +213,61 @@
   };
   disambiguate(actions);
 
-  // textContent, not innerText: innerText is a rendered view, and on Moli it
-  // reports 25 characters where textContent reports 89,091.
-  const words = [];
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node, length = 0;
-  while ((node = walker.nextNode()) && length < 6000) {
-    const value = node.textContent.trim();
-    const parent = node.parentElement;
-    if (!value || !parent) continue;
-    if (parent.closest('script,style,noscript,template')) continue;
-    if (!live(parent)) continue;
-    words.push(value);
-    length += value.length;
-  }
-  const text = words.join(' ').slice(0, 6000);
+  // The page's words, cut into retrievable units, and all of them.
+  //
+  // This used to be the first 6,000 characters of text. That is what a
+  // viewport-bound reader produces anyway -- it never sees more than a screen
+  // -- but for a reader that has the whole document it throws away what it
+  // just read. Measured on four long articles, the sentence carrying the
+  // answer was on the page every time and outside the first 6,000 characters
+  // every time. Choosing which rows a decision gets to see is a retrieval
+  // problem, so it happens on the Python side (evidence.py), with the goal in
+  // hand; this only has to hand over every row, in order.
+  //
+  // A block contributes its OWN text -- text nodes and inline descendants,
+  // with nested blocks left to speak for themselves. Taking each block's whole
+  // subtree would repeat every paragraph once per ancestor. A table row is the
+  // exception: its cells are joined into one row, "Elevation | 8,848.86 m",
+  // because a label and its value split into separate rows can no longer be
+  // paired. textContent throughout, never innerText: innerText is a rendered
+  // view, and on Moli it reports 25 characters where textContent reports 89,091.
+  const BLOCK = new Set(['ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'CAPTION', 'DD',
+    'DIV', 'DL', 'DT', 'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2',
+    'H3', 'H4', 'H5', 'H6', 'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION',
+    'TABLE', 'TBODY', 'TD', 'TH', 'THEAD', 'TFOOT', 'TR', 'UL', 'DETAILS', 'SUMMARY']);
+  const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'svg']);
+  const squash = s => s.replace(/\s+/g, ' ').trim();
+  const own = block => {
+    let out = '';
+    for (const child of block.childNodes) {
+      if (child.nodeType === 3) { out += child.nodeValue; continue; }
+      if (child.nodeType !== 1 || SKIP.has(child.tagName) || BLOCK.has(child.tagName)) continue;
+      if (!liveHere(child)) continue;
+      out += ' ' + child.textContent + ' ';
+    }
+    return squash(out);
+  };
+  const rows = [];
+  const walk = parent => {
+    for (const child of parent.children) {
+      // Descending only through live elements is what lets liveHere() stand
+      // in for live(): an ancestor walk per element was half the snapshot's
+      // cost on a slow engine.
+      if (SKIP.has(child.tagName) || !liveHere(child)) continue;
+      if (child.tagName === 'TR') {
+        const cells = [...child.children].map(c => squash(c.textContent)).filter(Boolean);
+        if (cells.length) rows.push(cells.join(' | '));
+        continue;
+      }
+      if (BLOCK.has(child.tagName)) {
+        const line = own(child);
+        if (line.length > 1) rows.push(line);   // single characters are bullets
+      }
+      walk(child);
+    }
+  };
+  if (live(document.body)) walk(document.body);
 
   const marker = actions.map(a => `${a.node}:${a.kind}:${a.label}`).join('|');
-  return {url: location.href, title: document.title, text, actions, marker};
+  return {url: location.href, title: document.title, rows, actions, marker};
 })()

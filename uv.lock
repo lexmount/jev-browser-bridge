@@ -268,16 +268,21 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx", extra = ["http2"] },
-    { name = "lexmount" },
     { name = "websockets" },
+]
+
+[package.optional-dependencies]
+lexmount = [
+    { name = "lexmount" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", extras = ["http2"], specifier = ">=0.28,<1" },
-    { name = "lexmount", specifier = ">=0.5" },
+    { name = "lexmount", marker = "extra == 'lexmount'", specifier = ">=0.5" },
     { name = "websockets", specifier = ">=13" },
 ]
+provides-extras = ["lexmount"]
 
 [[package]]
 name = "lexmount"

@@ -45,23 +45,43 @@ OPERATIONS = {
 }
 
 
+# Answers worth asking again. A decision request carries no side effects, so
+# repeating one is always safe; giving up on the first dropped connection is
+# what cost a run on a perfectly healthy browser -- measured, one run in ten on
+# Moli and one in eleven on Obscura ended on "Model connection failed" or a
+# gateway 500, and the same task passed on the next try.
+RETRY_STATUS = {429, 500, 502, 503, 504, 529}
+ATTEMPTS = 4
+
+
 def post(url: str, key: str, body: dict) -> dict:
-    for attempt in range(3):
+    last = ""
+    for attempt in range(ATTEMPTS):
+        final = attempt == ATTEMPTS - 1
         try:
             response = CLIENT.post(url, json=body, headers={"Authorization": f"Bearer {key}"})
-        except httpx.HTTPError:
-            raise RuntimeError("Model connection failed; no action executed.") from None
-        if response.status_code in {429, 503, 529} and attempt < 2:
+        except httpx.HTTPError as error:
+            last = f"{type(error).__name__}: {error}"
+            if final:
+                raise RuntimeError(f"Model connection failed; no action executed ({last}).") \
+                    from None
+            time.sleep(0.5 * 2 ** attempt)
+            continue
+        if response.status_code in RETRY_STATUS and not final:
+            last = f"HTTP {response.status_code}"
             time.sleep(0.5 * 2 ** attempt)
             continue
         if response.is_error:
             # Carry the provider's own message: a 400 here is almost always a
             # malformed question, and the body says which one.
+            tried = f" after {attempt + 1} attempts" if attempt else ""
             raise RuntimeError(
-                f"Model provider returned HTTP {response.status_code}: "
+                f"Model provider returned HTTP {response.status_code}{tried}: "
                 f"{response.text[:400]}")
         return response.json()
-    raise RuntimeError("Model unavailable")
+    # Every pass through the loop returns or raises; this keeps the function's
+    # contract explicit for readers and type checkers alike.
+    raise AssertionError("unreachable")
 
 
 # The decision API accepts at most 255 choices per question.
@@ -113,6 +133,18 @@ def _rank(action, keywords: set[str]) -> tuple[int, int]:
 def action_space(actions, goal: str = ""):
     """Group observed actions into the operation/target shape Jev expects."""
     keywords = _keywords(goal)
+    # One destination, one choice. A page links the same article from several
+    # places under the same name; offering each copy spends the choice budget
+    # on duplicates and leaves the model to pick between identical options.
+    seen: set[tuple[str, str, str]] = set()
+    unique = []
+    for action in actions:
+        key = (action.kind, action.label, action.href)
+        if action.href and key in seen:
+            continue
+        seen.add(key)
+        unique.append(action)
+    actions = unique
     if len(actions) > MAX_CHOICES:
         ordered = sorted(enumerate(actions), key=lambda p: (_rank(p[1], keywords), p[0]))
         keep = {i for i, _ in ordered[:MAX_CHOICES]}
@@ -156,7 +188,10 @@ def choose(snapshot, goal: str, history: list[dict]) -> dict:
     body = {
         "model": os.environ.get("JEV_MODEL", "jev-latest"),
         "state": {
-            "page": {"url": snapshot.url, "title": snapshot.title, "text": snapshot.text},
+            # The rows that bear on the goal, not the first N characters: the
+            # top of a long page is navigation, and the answer is further down.
+            "page": {"url": snapshot.url, "title": snapshot.title,
+                     "text": snapshot.evidence(goal)},
             "elements": [
                 {"index": i, "role": a.role, "label": a.label,
                  "value": a.current_value or a.value, **a.extra}
@@ -216,7 +251,11 @@ def field_text(goal: str, action, history: list[dict]) -> str:
     if reasoning and reasoning != "none":
         body["reasoning"] = {"effort": reasoning}
 
-    result = post(f"{base}/chat/completions", os.environ["TEXT_MODEL_API_KEY"], body)
+    key = os.environ.get("TEXT_MODEL_API_KEY")
+    if not key:
+        raise RuntimeError("This step types into a field, which needs a text model: "
+                           "set TEXT_MODEL_API_KEY (see .env.example).")
+    result = post(f"{base}/chat/completions", key, body)
     choice = result["choices"][0]
     content = (choice["message"].get("content") or "").strip()
 
@@ -228,7 +267,7 @@ def field_text(goal: str, action, history: list[dict]) -> str:
         body["messages"] = body["messages"] + [
             {"role": "system", "content":
              "Reply with the field value alone. No JSON, no quotes, no commentary."}]
-        content = ((post(f"{base}/chat/completions", os.environ["TEXT_MODEL_API_KEY"], body)
+        content = ((post(f"{base}/chat/completions", key, body)
                     )["choices"][0]["message"].get("content") or "").strip()
     if not content:
         return ""
