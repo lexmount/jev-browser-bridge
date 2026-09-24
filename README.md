@@ -1,65 +1,59 @@
 # Jev NoLayout
 
-**Plug any browser into Jev.**
+## Plug **any** browser into Jev.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
-[![Browsers](https://img.shields.io/badge/browsers%20verified-15-brightgreen.svg)](#results)
+[![Browsers](https://img.shields.io/badge/browsers%20verified-14-brightgreen.svg)](#results)
 
-[TypeSafe's Jev](https://docs.typesafe.ai/introduction) is a decision model: give it a goal and a list of things a page can do, and it picks one in a single forward pass. Jev NoLayout is the part that turns **any browser that speaks CDP** into that list, and turns Jev's choice back into an action — in the cloud, on your machine, in a container, and on engines that never draw a page at all.
-
-```python
-with connect("http://127.0.0.1:9222") as browser:      # any CDP browser
-    browser.navigate("https://en.wikipedia.org/wiki/Espresso")
-    for state in Agent(browser, "Open the article about Latte").run():
-        ...
-```
+**Cloud, local or self-hosted. Chromium or not. Even browsers that never draw a page.**
+If it speaks CDP, it runs Jev.
 
 ## Results
 
-Same agent, same five goals on every browser — switch a page's language, follow a footer link, jump to another reference page, open a linked article, type a search and open the result. Each goal run twice; a run passes only if the agent ends on the right URL.
+Same agent, same five goals on every browser.
 
-| Browser | Kind | Draws pages? | Result | Avg. steps |
+| Browser | Kind | Draws pages? | Pass rate | Avg. steps |
 | --- | --- | :-: | :-: | :-: |
 | **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | No | **10/10** | 2.2 |
-| Lexmount Chrome | Cloud | Yes | **10/10** | 2.3 |
 | [Cloudflare Kitesurf](https://developers.cloudflare.com/browser-run/kitesurf/) | Cloud | Own engine | **10/10** | 2.2 |
 | [Browserbase](https://www.browserbase.com) | Cloud | Yes | **10/10** | 2.2 |
-| Cloudflare Browser Run (Chromium) | Cloud | Yes | **7/7** ¹ | 2.1 |
+| Cloudflare Browser Run (Chromium) | Cloud | Yes | **7/7** | 2.1 |
 | Chrome · chrome-headless-shell · Playwright Chromium | Local | Yes | **10/10** each | 2.2 |
-| [Lightpanda](https://lightpanda.io) | Local | No | **9/10** ² | 2.2 |
-| [Obscura](https://github.com/h4ckf0r0day/obscura) (no-render build) | Local | No | **9/10** ³ | 2.3 |
+| [Lightpanda](https://lightpanda.io) | Local | No | **9/10** | 2.2 |
+| [Obscura](https://github.com/h4ckf0r0day/obscura) (no-render build) | Local | No | **9/10** | 2.3 |
 | browserless · Steel · chromedp · Kernel | Self-hosted | Yes | **10/10** each | 2.2 |
 | Selenium Grid | Self-hosted | Yes | **5/5** | 2.2 |
 
-<sub>¹ Every run that got a browser; the rest were refused by the free plan's daily quota. ² The miss reached the article and kept clicking. ³ The miss was Obscura's own 30-second navigation deadline.</sub>
-
-The steps column is the point: **about two steps everywhere**, whether the browser is a full Chrome or an engine with no layout at all.
-
 ## Plug in a browser
 
-With Moli, through Lexmount:
+**Moli**, a cloud browser from Lexmount:
 
 ```python
 from jev_nolayout import Agent, lexmount_session
 
-with lexmount_session() as browser:                  # Moli
+with lexmount_session() as browser:
     browser.navigate("https://en.wikipedia.org/wiki/Espresso")
     for state in Agent(browser, "Open the article about Latte").run():
         print(state.steps[-1])
 ```
 
-Every other browser is the same code with a different first line — Moli is only the example:
+**Lightpanda**, a headless browser running on your machine:
 
-| Browser | First line |
-| --- | --- |
-| Chrome, Lightpanda, Obscura, any local browser | `connect("http://127.0.0.1:9222")` |
-| A hosted service that hands out a websocket (Browserbase …) | `connect(session.connect_url)` |
-| A service that authenticates the handshake (Cloudflare …) | `connect(url, headers={"Authorization": f"Bearer {token}"})` |
-| A browser in a container (browserless, Steel …) | `connect("http://127.0.0.1:<mapped port>")` |
-| Selenium Grid | `selenium_session("http://127.0.0.1:4444")` |
+```bash
+lightpanda serve --port 9222
+```
 
-`connect()` uses the browser's page or opens one, and closes what it opened. It also absorbs the quirks hosted browsers tend to have: a websocket address advertised from inside a container (`ws://0.0.0.0:3000`) is pointed back at the address you reached; `user:pass@` in a URL is sent as Basic auth; a rate limit that asks for seconds is waited out, one that asks for hours is reported instead of hanging.
+```python
+from jev_nolayout import Agent, connect
+
+with connect("http://127.0.0.1:9222") as browser:
+    browser.navigate("https://en.wikipedia.org/wiki/Espresso")
+    for state in Agent(browser, "Open the article about Latte").run():
+        print(state.steps[-1])
+```
+
+Any other browser works the same way: pass its CDP address to `connect()`.
 
 ## How it works
 
