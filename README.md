@@ -1,4 +1,6 @@
-# Jev NoLayout
+<p align="center">
+  <img src="assets/overview.png" alt="Jev NoLayout: a bridge from any CDP browser to Jev" width="100%">
+</p>
 
 ## Plug **any** browser into Jev.
 
