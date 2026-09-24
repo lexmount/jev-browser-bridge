@@ -1,15 +1,17 @@
 [project]
 name = "jev-nolayout"
 version = "0.1.0"
-description = "A browser agent for Moli that reads structure instead of layout"
+description = "A browser agent that reads structure instead of layout, on any CDP browser"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 dependencies = [
   "httpx[http2]>=0.28,<1",
-  "lexmount>=0.5",
   "websockets>=13",
 ]
+
+[project.optional-dependencies]
+lexmount = ["lexmount>=0.5"]
 
 [project.scripts]
 jev-nolayout = "jev_nolayout.cli:main"

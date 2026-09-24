@@ -1,4 +1,4 @@
-"""jev-nolayout <url> <goal> -- run one goal on Moli and print the trace."""
+"""jev-nolayout <url> <goal> -- run one goal and print the trace."""
 from __future__ import annotations
 
 import argparse
@@ -24,17 +24,22 @@ def main() -> None:
     parser.add_argument("url")
     parser.add_argument("goal")
     parser.add_argument("--browser", default="light",
-                        help="light = Moli (default), normal = standard Chrome")
+                        help="Lexmount session type: light = Moli (default), "
+                             "normal = standard Chrome")
+    parser.add_argument("--cdp", metavar="ENDPOINT",
+                        help="use any CDP browser instead of creating a Lexmount "
+                             "session: ws://... or http://host:port")
     parser.add_argument("--env", default=".env")
     args = parser.parse_args()
 
     load_env(args.env)
-    for required in ("JEV_API_KEY", "TEXT_MODEL_API_KEY"):
-        if not os.environ.get(required):
-            parser.error(f"{required} is not set (see .env.example)")
+    # The text model is only needed when a step types into a field, so it is
+    # checked there, not here.
+    if not os.environ.get("JEV_API_KEY"):
+        parser.error("JEV_API_KEY is not set (see .env.example)")
 
     from .agent import Agent
-    from .session import moli_session
+    from .session import connect, lexmount_session
 
     def show(step):
         head = f"  {step.n:>2}. {step.operation:<10}"
@@ -49,10 +54,11 @@ def main() -> None:
         if step.outcome:
             print(f"      {step.outcome}")
 
-    print(f"\n  goal     {args.goal}\n  from     {args.url}\n"
-          f"  browser  {'Moli' if args.browser == 'light' else 'Chrome'}\n")
+    where = args.cdp or ("Moli" if args.browser == "light" else "Lexmount Chrome")
+    print(f"\n  goal     {args.goal}\n  from     {args.url}\n  browser  {where}\n")
 
-    with moli_session(args.browser) as browser:
+    session = connect(args.cdp) if args.cdp else lexmount_session(args.browser)
+    with session as browser:
         browser.navigate(args.url)
         agent = Agent(browser, args.goal, on_step=show)
         state = None
