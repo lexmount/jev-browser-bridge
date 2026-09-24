@@ -37,8 +37,8 @@ ACT_JS = """(action => {
   // Mark this document. If the action replaces it, the next document will not
   // carry the mark -- which is how the caller tells "the page changed" from
   // "the page is still the one we clicked on and has not caught up yet".
-  window.__jevNoLayoutDoc = action.token;
-  const e = window.__jevNoLayout?.nodes.get(action.node);
+  window.__jevBridgeDoc = action.token;
+  const e = window.__jevBridge?.nodes.get(action.node);
   if (!e?.isConnected || e.matches(':disabled') ||
       e.closest('[aria-disabled="true"],[inert],[hidden]')) return null;
 
@@ -66,7 +66,7 @@ ACT_JS = """(action => {
     e.dispatchEvent(new Event('input', {bubbles: true}));
     e.dispatchEvent(new Event('change', {bubbles: true}));
     // How to find this field again if the page swaps it out; see REFILL_JS.
-    window.__jevNoLayoutField = {node: action.node, name: e.name || '',
+    window.__jevBridgeField = {node: action.node, name: e.name || '',
       aria: e.getAttribute('aria-label') || '', placeholder: e.placeholder || '',
       form: e.form?.id || ''};
     return 'filled';
@@ -104,9 +104,9 @@ ACT_JS = """(action => {
 # if the node we filled is gone, find its replacement by name, label or
 # placeholder, and put the text there too.
 REFILL_JS = """(text => {
-  const was = window.__jevNoLayoutField;
+  const was = window.__jevBridgeField;
   if (!was) return 'kept';
-  const old = window.__jevNoLayout?.nodes.get(was.node);
+  const old = window.__jevBridge?.nodes.get(was.node);
   if (old?.isConnected && old.value === text) return 'kept';
   const fields = [...document.querySelectorAll('input,textarea')].filter(f =>
     !f.disabled && !f.readOnly && f.type !== 'hidden'
@@ -128,12 +128,12 @@ REFILL_JS = """(text => {
 
 # Has the document been replaced since ACT_JS marked it, and is the new one done?
 LOADED_JS = """(token => ({
-  replaced: window.__jevNoLayoutDoc !== token,
+  replaced: window.__jevBridgeDoc !== token,
   ready: document.readyState === 'complete' || document.readyState === 'interactive',
 }))"""
 
 SUBMIT_JS = """(node => {
-  const e = window.__jevNoLayout?.nodes.get(node);
+  const e = window.__jevBridge?.nodes.get(node);
   if (!e?.isConnected) return null;
   e.focus();
   for (const type of ['keydown', 'keypress', 'keyup']) {

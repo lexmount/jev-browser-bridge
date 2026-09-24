@@ -7,8 +7,8 @@
 For any other browser, replace `lexmount_session()` with
 `connect("http://127.0.0.1:9222")` (or a ws:// URL) -- nothing else changes.
 """
-from jev_nolayout import Agent, lexmount_session
-from jev_nolayout.cli import load_env
+from jev_browser_bridge import Agent, lexmount_session
+from jev_browser_bridge.cli import load_env
 
 load_env()
 

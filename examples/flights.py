@@ -6,8 +6,8 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from jev_nolayout import Agent, moli_session  # noqa: E402
-from jev_nolayout.cli import load_env  # noqa: E402
+from jev_browser_bridge import Agent, moli_session  # noqa: E402
+from jev_browser_bridge.cli import load_env  # noqa: E402
 
 URL = "https://www.google.com/travel/flights?hl=en"
 DEPART = os.environ.get("DEPART_ON", "September 27, 2026")
