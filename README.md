@@ -146,7 +146,7 @@ A link or a submit button waits for the next document before the page is read ag
 
 </details>
 
-`examples/quickstart.py` is the shortest complete run. `examples/flights.py` drives a live Google Flights search and checks the result against the page itself, not against the model's claim of success.
+`uv run pytest` runs the offline checks — retrieval, connection handling and retries — with no browser or API key. `examples/quickstart.py` is the shortest complete run. `examples/flights.py` drives a live Google Flights search and checks the result against the page itself, not against the model's claim of success.
 
 ## License
 
