@@ -37,15 +37,15 @@ BASE = "https://miniwob.farama.org/demos/miniwob"
 
 # Seed the problem, start the episode with no timer, and return the instruction.
 # An engine without Math.seedrandom still gets a problem, just not the same one.
-START_JS = """(() => {{
+START_JS = """(key => {
   let seeded = true;
-  try {{ Math.seedrandom('{task}-{seed}'); }} catch (e) {{ seeded = false; }}
+  try { Math.seedrandom(key); } catch (e) { seeded = false; }
   core.EPISODE_MAX_TIME = 600000;
   core.startEpisodeReal();
   clearTimeout(core.EP_TIMER); core.EP_TIMER = -1;
   const utterance = core.getUtterance();
-  return {{utterance: typeof utterance === 'string' ? utterance : utterance.utterance, seeded}};
-}})()"""
+  return {utterance: typeof utterance === 'string' ? utterance : utterance.utterance, seeded};
+})"""
 READY_JS = "typeof core !== 'undefined' && typeof genProblem === 'function'"
 
 # A cloud session can be dropped by the service mid-run. That is the session,
@@ -63,7 +63,7 @@ def episode(browser, task: str, seed: int, max_steps: int) -> dict:
                 if browser.evaluate(READY_JS):
                     break
             time.sleep(1)
-        start = browser.evaluate(START_JS.format(task=task, seed=seed))
+        start = browser.evaluate(f"{START_JS}({json.dumps(f'{task}-{seed}')})")
         record.update(goal=start["utterance"], seeded=start["seeded"])
         state, status = None, "max_steps"
         for state in Agent(browser, start["utterance"]).run():
