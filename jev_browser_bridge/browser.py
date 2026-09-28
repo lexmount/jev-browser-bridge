@@ -89,6 +89,9 @@ ACT_JS = """(action => {
   const form = e.form || null;
   const submits = form && (e.type === 'submit' || e.type === 'image'
     || (e.tagName === 'BUTTON' && !e.hasAttribute('type')));
+  // A real click focuses what it lands on; element.click() does not, and a
+  // page listening for focus never hears about it.
+  if (typeof e.focus === 'function') e.focus({preventScroll: true});
   e.click();
   if (leaves) return {navigating: link.href};
   if (submits) return {navigating: form.action || location.href};
@@ -243,7 +246,8 @@ class Browser:
                 value=a.get("value", ""), region=a.get("region", ""),
                 depth=a.get("depth", 0), closed=bool(a.get("closed")),
                 current_value=a.get("current_value", ""), href=a.get("href", ""),
-                extra={k: a[k] for k in ("checked", "selected", "expanded") if k in a}))
+                extra={k: a[k] for k in ("checked", "selected", "expanded", "format")
+                       if k in a}))
         return Snapshot(url=raw["url"], title=raw["title"], rows=raw.get("rows") or [],
                         actions=actions, marker=raw["marker"])
 
