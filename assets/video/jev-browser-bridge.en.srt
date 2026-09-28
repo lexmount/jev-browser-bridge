@@ -1,0 +1,55 @@
+1
+00:00:00,300 --> 00:00:02,327
+Connect Jev to the browser you choose.
+
+2
+00:00:02,487 --> 00:00:04,385
+Cloud, local, or self-hosted.
+
+3
+00:00:07,300 --> 00:00:09,497
+Read the DOM across the document.
+
+4
+00:00:09,657 --> 00:00:13,903
+Find controls beyond the viewport, and retrieve text relevant to your goal.
+
+5
+00:00:16,300 --> 00:00:18,668
+Jev chooses an operation and a target.
+
+6
+00:00:18,828 --> 00:00:22,604
+Actions run on the selected element, without screen coordinates.
+
+7
+00:00:22,764 --> 00:00:24,727
+Even when the browser skips rendering.
+
+8
+00:00:27,300 --> 00:00:28,900
+Keep the same agent code.
+
+9
+00:00:29,060 --> 00:00:31,748
+Change the CDP endpoint to switch browsers.
+
+10
+00:00:35,300 --> 00:00:44,324
+The repository reports tests across fourteen browser configurations, spanning cloud services, local engines, and self-hosted stacks.
+
+11
+00:00:45,300 --> 00:00:46,473
+Choose your browser.
+
+12
+00:00:46,633 --> 00:00:47,572
+Set your goal.
+
+13
+00:00:47,732 --> 00:00:48,628
+Run Jev.
+
+14
+00:00:48,788 --> 00:00:50,196
+Get started on GitHub.
