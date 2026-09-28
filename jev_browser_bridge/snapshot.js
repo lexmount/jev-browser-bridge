@@ -33,7 +33,10 @@
   // Walking ancestors in script was half the snapshot's cost on a slow engine:
   // Cloudflare's Kitesurf runs this inside a per-page CPU budget and ran out
   // of it on long articles, while its selector matching is native.
-  const DEAD = ['[aria-hidden="true"]', '[inert]', '[hidden]', '[aria-disabled="true"]'];
+  // An inline `display: none` is an attribute like any other -- it is how
+  // scripts hide and show things -- so it counts, without asking layout.
+  const DEAD = ['[aria-hidden="true"]', '[inert]', '[hidden]', '[aria-disabled="true"]',
+                '[style*="display: none"]', '[style*="display:none"]'];
   const dead = new Set(document.querySelectorAll(DEAD.flatMap(d => [d, `${d} *`]).join(',')));
   const live = e => !dead.has(e) && !e.matches(':disabled');
   const liveHere = e => !dead.has(e) && e.disabled !== true;
@@ -82,6 +85,35 @@
       || e.getAttribute('title')
       || e.getAttribute('placeholder')
       || '').trim().replace(/\s+/g, ' ');
+  };
+
+  // A field with no accessible name is still a field. Forms often put the
+  // label beside the input without tying them together -- `<label>Username
+  // </label><input>`, no `for` -- and a text box on its own may carry nothing
+  // but an id. Dropping such a field left a goal like "enter X and press
+  // Submit" with nothing to type into, and the agent gave up on step one.
+  // So name it by the text just before it, then by its own name or id, and
+  // failing all of that by what it is.
+  const FIELD_ROLES = ['textbox', 'searchbox', 'spinbutton', 'combobox', 'checkbox', 'radio'];
+  const FORMATS = {date: 'YYYY-MM-DD', month: 'YYYY-MM', week: 'YYYY-Www', time: 'HH:MM',
+                   number: 'a number', email: 'an email address', url: 'a URL'};
+  // Text in the nearest sibling that has any, walking one way.
+  const beside = (e, step) => {
+    for (let p = e[step]; p; p = p[step]) {
+      if (p.nodeType !== 3 && p.nodeType !== 1) continue;
+      if (p.nodeType === 1 && p.matches('input,textarea,select,button')) return '';
+      const text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text) return text.replace(/[:*]\s*$/, '').slice(0, 60);
+    }
+    return '';
+  };
+  const fieldHint = (e, rname) => {
+    if (!FIELD_ROLES.includes(rname)) return '';
+    // A box's label comes after it; a text field's comes before.
+    const text = ['checkbox', 'radio'].includes(rname)
+      ? beside(e, 'nextSibling') || beside(e, 'previousSibling')
+      : beside(e, 'previousSibling');
+    return text || `${rname} ${e.getAttribute('name') || e.id || ''}`.trim();
   };
 
   const ROLES = ['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem',
@@ -133,7 +165,7 @@
     if (seen.has(e) || !safe(e) || !live(e)) continue;
     const rname = role(e);
     if (!rname) continue;
-    const label = name(e);
+    const label = name(e) || fieldHint(e, rname);
     if (!label) continue;                      // an unnamed control cannot be chosen
     seen.add(e);
 
@@ -163,8 +195,91 @@
             || (rname === 'combobox' && ['INPUT', 'TEXTAREA'].includes(e.tagName)));
       const value = 'value' in e ? String(e.value)
         : e.isContentEditable || rname === 'combobox' ? (e.textContent || '').trim() : '';
+      // A typed field that parses its value says how: a date input takes
+      // 2011-12-15 and silently rejects 12/15/2011.
+      if (editable && e.tagName === 'INPUT' && FORMATS[e.type]) base.format = FORMATS[e.type];
       actions.push({...base, kind: editable ? 'fill' : 'click', value});
       if (editable) actions.push({...base, kind: 'click', value, label: `Open ${base.label}`});
+    }
+  }
+
+  // Controls that only a script knows about. A <span> with a click listener
+  // bound by addEventListener or jQuery has no role, no href, no onclick
+  // attribute -- nothing in the markup says it does anything. The page's own
+  // stylesheet usually does: it gives the thing `cursor: pointer`. So read the
+  // rules, not the rendering -- selector text is there whether or not anything
+  // was ever laid out -- and offer what they point at.
+  //
+  // Measured on MiniWoB++: links, "Mute" and "Reply" buttons and a trash icon
+  // were all such spans, and the page offered no control at all.
+  //
+  // Not every engine has a CSS object model: Lightpanda's styleSheets is
+  // empty and cannot even be iterated. There, read the rules from the <style>
+  // elements' own text. Either way nothing here may take the snapshot down.
+  const pointerSelectors = [];
+  // `.x:hover { cursor: pointer }` still means .x is the thing to click.
+  const plain = sel => sel.replace(/::?(hover|active|focus(-within|-visible)?)\b/g, '').trim();
+  try {
+    const sheets = document.styleSheets;
+    for (let i = 0; i < (sheets?.length || 0); i++) {
+      let rules;
+      try { rules = sheets[i].cssRules; } catch { continue; }   // cross-origin sheet
+      for (let j = 0; j < (rules?.length || 0); j++) {
+        const rule = rules[j];
+        if (rule.style?.cursor === 'pointer' && rule.selectorText) {
+          pointerSelectors.push(plain(rule.selectorText));
+        }
+      }
+    }
+    if (!pointerSelectors.length) {
+      for (const style of document.querySelectorAll('style')) {
+        const css = (style.textContent || '').replace(/\/\*[\s\S]*?\*\//g, '');
+        for (const m of css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+          if (/(^|;)\s*cursor\s*:\s*pointer/.test(m[2])) pointerSelectors.push(plain(m[1]));
+        }
+      }
+    }
+  } catch { /* no rules to read: offer what the markup says, and no more */ }
+  pointerSelectors.push('[style*="cursor: pointer"]', '[style*="cursor:pointer"]');
+  // Inside a control already offered, a pointer is that control's own
+  // styling. Inside another pointer element it may well be a separate target
+  // (a trash icon on a clickable email row), so only the first pass counts.
+  const semantic = new Set(seen);
+  const underControl = e => {
+    for (let p = e; p; p = p.parentElement) if (semantic.has(p)) return true;
+    return false;
+  };
+  const iconName = e => [...e.classList].filter(c => !/^(ui|js|is|has)-/.test(c))
+    .slice(0, 3).join(' ').replace(/[-_]+/g, ' ');
+  for (const selector of pointerSelectors) {
+    let found;
+    try { found = document.querySelectorAll(selector); } catch { continue; }
+    for (const e of found) {
+      if (seen.has(e) || e === document.body || e === document.documentElement
+          || !live(e) || underControl(e)
+          || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE'].includes(e.tagName)) continue;
+      // Only a short name is a control's name; a long one is a container
+      // whose whole text happens to be clickable, and gets the start of it.
+      const label = name(e) || iconName(e);
+      if (!label) continue;
+      seen.add(e);
+      // A clickable list -- a menu whose <ul> carries the pointer -- reads as
+      // one control named "Reply Retweet Like Share via DM Mute ...". Clicking
+      // the list does nothing; its items are the controls. Offer those.
+      const items = [...e.children].filter(c => live(c) && !semantic.has(c)
+        && (c.textContent || '').trim() && (c.textContent || '').trim().length <= 40);
+      if (items.length >= 2) {
+        for (const c of items) {
+          const itemLabel = name(c) || iconName(c);
+          if (!itemLabel || seen.has(c)) continue;
+          seen.add(c);
+          actions.push({node: identity(c), role: 'button', label: itemLabel,
+                        closed: shut(c), href: '', kind: 'click', value: ''});
+        }
+        continue;
+      }
+      actions.push({node: identity(e), role: 'button', label: label.slice(0, 80),
+                    closed: shut(e), href: '', kind: 'click', value: ''});
     }
   }
 
@@ -177,6 +292,30 @@
   // Replace the cull with an explicit rule: same name and same kind means the
   // label must say where the control lives, or how deep it sits. Nothing is
   // dropped -- a hidden duplicate today is a live control after the next click.
+  // With no landmark to name, a repeated control is told apart by the words
+  // around it: the trash icon on each email row sits next to that email's
+  // sender, the "Mute" in each post's menu next to that post's author.
+  // Climb until an ancestor says something besides the control's own name.
+  // Only words that are not themselves controls count: a row of buttons
+  // "Odd" "Even" says nothing about which row it is.
+  const plainText = p => {
+    let out = '';
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    for (let t = walker.nextNode(); t && out.length < 80; t = walker.nextNode()) {
+      let q = t.parentElement, inside = false;
+      for (; q && q !== p; q = q.parentElement) if (seen.has(q)) { inside = true; break; }
+      if (!inside) out += ' ' + t.nodeValue;
+    }
+    return out.replace(/\s+/g, ' ').trim();
+  };
+  const context = (e, label) => {
+    for (let p = e?.parentElement, n = 0; p && p !== document.body && n < 6;
+         p = p.parentElement, n++) {
+      const text = plainText(p);
+      if (text && text.toLowerCase() !== label.toLowerCase()) return text.slice(0, 40);
+    }
+    return '';
+  };
   const disambiguate = list => {
     const groups = new Map();
     for (const a of list) {
@@ -205,7 +344,8 @@
       // observations even when the page re-renders around the control.
       group.sort((x, y) => x.depth - y.depth);
       group.forEach((a, i) => {
-        const where = a.region || `${i + 1} of ${group.length}`;
+        const where = a.region || context(cache.nodes.get(a.node), a.label)
+          || `${i + 1} of ${group.length}`;
         a.label = `${a.label} · ${where}`;
       });
     }

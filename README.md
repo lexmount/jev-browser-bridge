@@ -24,19 +24,19 @@ If it speaks CDP, it runs Jev.
 
 ## Results
 
-**Jev completing the same five web tasks on every browser** — each task run twice, and a run passes only if it ends on the right page.
+**Jev on [MiniWoB++](https://miniwob.farama.org), one agent, every browser.** 86 tasks × 2 seeds = 172 episodes per browser. Each episode is seeded, so every browser gets the same problems, and each page grades itself. Same decision model, same text model; only the browser changes.
 
-| Browser | Kind | Draws pages? | Pass rate | Avg. steps |
+| Browser | Kind | Draws pages? | Jev Browser Bridge | Position-based reader |
 | --- | --- | :-: | :-: | :-: |
-| **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | On demand | **10/10** | 2.2 |
-| [Cloudflare Kitesurf](https://developers.cloudflare.com/browser-run/kitesurf/) | Cloud | Own engine | **10/10** | 2.2 |
-| [Browserbase](https://www.browserbase.com) | Cloud | Yes | **10/10** | 2.2 |
-| Cloudflare Browser Run (Chromium) | Cloud | Yes | **7/7** | 2.1 |
-| Chrome · chrome-headless-shell · Playwright Chromium | Local | Yes | **10/10** each | 2.2 |
-| [Lightpanda](https://lightpanda.io) | Local | No | **9/10** | 2.2 |
-| [Obscura](https://github.com/h4ckf0r0day/obscura) (no-render build) | Local | No | **9/10** | 2.3 |
-| browserless · Steel · chromedp · Kernel | Self-hosted | Yes | **10/10** each | 2.2 |
-| Selenium Grid | Self-hosted | Yes | **5/5** | 2.2 |
+| Chrome | Local | Yes | **106/172** (62%) | 54/172 (31%) |
+| [Browserbase](https://www.browserbase.com) | Cloud | Yes | **112/172** (65%) | — |
+| **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | On demand | **105/172** (61%) | 42/172 (24%) |
+| [Lightpanda](https://lightpanda.io) | Local | No | **110/172** (64%) | 52/172 (30%) |
+| [Obscura](https://github.com/h4ckf0r0day/obscura) | Local | No | **30/172** (17%) | 0/172 (0%) |
+
+The bridge scores the same on a browser that draws pages, one that draws them on demand and one that never does. Obscura is lower because its script engine does not run many of the task pages at all: 18 of the 86 never start. The 44 MiniWoB++ tasks left out need a pointer position, a drag, a drawing, a colour or a password — see [`benchmarks/miniwob/excluded.tsv`](benchmarks/miniwob/excluded.tsv). Run it yourself with [`benchmarks/miniwob/run.py`](benchmarks/miniwob/run.py).
+
+Also connects and completes live-site tasks: chrome-headless-shell, Playwright Chromium, browserless, Steel, chromedp, Kernel and Selenium Grid.
 
 ## Plug in a browser
 
@@ -79,19 +79,20 @@ Most browser-agent frameworks decide what is on a page by asking the **layout en
 | What does the page say? | text ranges on screen | every row, retrieved against the goal |
 | How is it clicked? | a mouse event at (x, y) | dispatched on the element |
 
-On Chrome both work. On a browser whose layout is lazy, missing or fake, only one of them does — same page, controls / characters read:
+On Chrome both work: the position-based reader sees one screenful, by design. On a browser whose layout is lazy, missing or fake, that screenful shrinks to nothing. Controls each reader finds on the same page:
 
-| Browser | Position-based | Jev Browser Bridge |
-| --- | --- | --- |
-| Moli · Google Flights | **5 / 7** | 155 / 34,189 |
-| Lightpanda · Wikipedia | **18 / 221** | 2,875 / 137,723 |
-| Obscura · Wikipedia | **250 / 6,000** — every box is a placeholder, so everything is "on screen" | 2,876 / 137,745 |
-| Kitesurf · Google Flights | **error** — no `checkVisibility` | 209 / 36,569 |
+| Browser | Wikipedia article: position-based | Wikipedia article: Jev Browser Bridge | Google Flights: position-based | Google Flights: Jev Browser Bridge |
+| --- | :-: | :-: | :-: | :-: |
+| Chrome (reference) | 51 | 704 | 24 | 150 |
+| Moli | 68 | 703 | **5** | 157 |
+| Lightpanda | **17** | 704 | page does not start | page does not start |
+| Obscura | **0** | 1,219 | **0** | 184 |
+| Kitesurf | **error** (no `checkVisibility`) | 1,031 | **error** | 209 |
 
 ## Why it matters
 
 - **One integration, every browser.** Cloud, local, self-hosted, Chromium or not. Adding a browser is a URL, not an adapter.
-- **The whole page, not the screen.** A control below the fold is a candidate like any other, so the agent does not scroll around looking for it. That is why the average stays near two steps.
+- **The whole page, not the screen.** A control below the fold is a candidate like any other, so the agent does not scroll around looking for it.
 - **The same read on every Chromium.** 2,876 controls on the Jupiter article in local Chrome, in headless-shell, in every hosted service tested — no dependence on window size.
 - **Clicks cannot miss.** An action is dispatched on the element it was offered for; there is no coordinate to go stale between reading the page and acting on it.
 - **Cheaper browsers become usable.** Engines that render lazily or not at all — Moli, Lightpanda — are faster and lighter to run, and the reading method most agents rely on breaks on exactly them.
@@ -138,6 +139,13 @@ Each observation becomes an element table; Jev chooses the operation (`CLICK`, `
 <summary><b>Controls that share a name</b></summary>
 
 Reading the whole page surfaces every control with a given name, not just the one on screen. Google's date picker has four buttons that all read `Done`, and only one commits the date — so same-named controls are labelled by where they live (`Done · date picker`, `Done · 2 of 3`). Links that share a name *and* a destination are one control repeated, and are offered once.
+
+</details>
+
+<details>
+<summary><b>Controls the markup does not announce</b></summary>
+
+A `<span>` with a click handler bound by script has no role, no `href` and no `onclick` attribute. The page's stylesheet usually still says `cursor: pointer`, so those rules are read — as selector text, not as rendering — and the elements they name are offered; an engine with no CSS object model has its `<style>` text parsed instead. A clickable list is offered item by item, and a field with no label is named by the text beside it. These came out of MiniWoB++, where links, menus and icons are all such spans.
 
 </details>
 

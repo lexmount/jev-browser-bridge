@@ -1,0 +1,44 @@
+drag-box	drag
+drag-circle	drag
+drag-cube	drag
+drag-items	drag
+drag-items-grid	drag
+drag-shapes	drag
+drag-shapes-2	drag
+drag-single-shape	drag
+drag-sort-numbers	drag
+draw-circle	drawing
+draw-line	drawing
+use-slider	drag (slider)
+use-slider-2	drag (slider)
+resize-textarea	drag (resize handle)
+daily-calendar	drag (event block)
+hot-cold	pointer position
+bisect-angle	pointer position
+circle-center	pointer position
+find-midpoint	pointer position
+right-angle	pointer position
+grid-coordinate	pointer position
+moving-items	moving target
+chase-circle	moving target
+hover-shape	hover
+click-pie	shape graphics
+click-pie-nodelay	shape graphics
+click-shape	shape graphics
+count-shape	shape graphics
+count-sides	shape graphics
+identify-shape	shape graphics
+ascending-numbers	shape graphics
+visual-addition	shape graphics
+tic-tac-toe	shape graphics
+simon-says	visual sequence
+click-color	colour only
+click-shades	colour only
+highlight-text	text selection
+highlight-text-2	text selection
+copy-paste	clipboard
+copy-paste-2	clipboard
+text-editor	text selection
+enter-password	password (never offered, by design)
+login-user	password (never offered, by design)
+login-user-popup	password (never offered, by design)

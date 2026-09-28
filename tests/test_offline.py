@@ -144,3 +144,32 @@ def test_a_bad_request_is_not_retried():
         assert seen == [400]
     finally:
         server.shutdown()
+
+
+# -- model.choose: a request too large for the model -------------------------
+
+def test_oversized_request_sheds_page_text_not_choices(monkeypatch):
+    # Google Flights, once turned multi-city, produced a request the model
+    # refused outright ("max_tokens_exceeded") and the run died on it.
+    from jev_browser_bridge.browser import Snapshot
+    rows = [f"Row {i} about flights from Zurich to London and back again" for i in range(2000)]
+    actions = [Action(node=i, kind="click", role="button", label=f"Option {i}") for i in range(40)]
+    snapshot = Snapshot(url="https://example.test", title="t", rows=rows,
+                        actions=actions, marker="m")
+    sent = []
+
+    def post(url, key, body):
+        sent.append((len(body["state"]["page"]["text"]), len(body["state"]["elements"])))
+        if len(sent) < 3:
+            raise RuntimeError('Model provider returned HTTP 400: '
+                               '{"detail":{"error_type":"max_tokens_exceeded"}}')
+        return {"answers": {"operation": {"choice": "CLICK"}, "click_target": {"choice": "1"}}}
+
+    monkeypatch.setenv("JEV_API_KEY", "test")
+    monkeypatch.setattr(model, "post", post)
+    decision = model.choose(snapshot, "flights from Zurich to London", [])
+    assert decision["action"].label == "Option 0"
+    texts = [t for t, _ in sent]
+    elements = [e for _, e in sent]
+    assert texts[0] > texts[1] > texts[2]          # text shrinks each time
+    assert len(set(elements)) == 1                 # every choice is still offered

@@ -121,7 +121,8 @@ class Agent:
 
             text = ""
             if operation == "TYPE_TEXT":
-                text = field_text(self.goal, action, self.run_state.history)
+                text = field_text(self.goal, action, self.run_state.history,
+                                  snapshot.evidence(self.goal, 4000))
                 step.text = text
                 if not text:
                     # Better to lose a step than to submit an empty field.
