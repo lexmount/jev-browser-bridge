@@ -2,6 +2,7 @@
 
     uv run python benchmarks/miniwob/run.py --cdp http://127.0.0.1:9222 --out chrome.jsonl
     uv run python benchmarks/miniwob/run.py --browser light --out moli.jsonl
+    python benchmarks/miniwob/run.py --cdp URL --header "Authorization: Bearer T" --out cf.jsonl
     uv run python benchmarks/miniwob/summary.py *.jsonl
 
 Every browser gets the same problems: each episode is seeded by task name and
@@ -89,6 +90,8 @@ def episode(browser, task: str, seed: int, max_steps: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--cdp", metavar="ENDPOINT", help="any CDP address")
+    parser.add_argument("--header", action="append", default=[], metavar="NAME: VALUE",
+                        help="handshake header for --cdp, e.g. an Authorization token")
     parser.add_argument("--browser", default="light",
                         help="Lexmount browser mode when --cdp is not given (light = Moli)")
     parser.add_argument("--tasks", default=str(HERE / "tasks.txt"))
@@ -110,8 +113,13 @@ def main() -> None:
                 finished.add((r["task"], r["seed"]))
     todo = [(t, s) for t in tasks for s in range(args.seeds) if (t, s) not in finished]
 
+    headers = dict(h.split(":", 1) for h in args.header)
+    headers = {k.strip(): v.strip() for k, v in headers.items()}
+
     def open_browser():
-        return connect(args.cdp) if args.cdp else lexmount_session(args.browser)
+        if args.cdp:
+            return connect(args.cdp, headers=headers or None, wait_for_page=5.0)
+        return lexmount_session(args.browser)
 
     stack, browser, used = None, None, 0
     with open(args.out, "a") as out:
