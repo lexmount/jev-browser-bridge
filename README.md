@@ -10,12 +10,12 @@
 If it speaks CDP, it runs Jev.
 
 <p align="center">
-  <a href="https://github.com/lexmount/jev-browser-bridge/blob/main/assets/video/jev-browser-bridge-intro.mp4">
+  <a href="https://lexmount.github.io/jev-browser-bridge/assets/video/">
     <img src="assets/video/jev-browser-bridge-preview.gif" alt="Watch the 52-second Jev Browser Bridge introduction: connect Jev to cloud, local, and self-hosted CDP browsers" width="100%">
   </a>
 </p>
 <p align="center">
-  <strong><a href="https://github.com/lexmount/jev-browser-bridge/blob/main/assets/video/jev-browser-bridge-intro.mp4">▶ Watch the 52-second introduction</a></strong> · English narration and captions · <a href="assets/video/TRANSCRIPT.md">Transcript</a>
+  <strong><a href="https://lexmount.github.io/jev-browser-bridge/assets/video/">▶ Watch the 52-second introduction</a></strong> · English narration and captions · <a href="assets/video/TRANSCRIPT.md">Transcript</a>
 </p>
 
 <p align="center">
