@@ -19,7 +19,7 @@ If it speaks CDP, it runs Jev.
 
 | Browser | Kind | Draws pages? | Pass rate | Avg. steps |
 | --- | --- | :-: | :-: | :-: |
-| **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | No | **10/10** | 2.2 |
+| **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | On demand | **10/10** | 2.2 |
 | [Cloudflare Kitesurf](https://developers.cloudflare.com/browser-run/kitesurf/) | Cloud | Own engine | **10/10** | 2.2 |
 | [Browserbase](https://www.browserbase.com) | Cloud | Yes | **10/10** | 2.2 |
 | Cloudflare Browser Run (Chromium) | Cloud | Yes | **7/7** | 2.1 |
@@ -85,7 +85,7 @@ On Chrome both work. On a browser whose layout is lazy, missing or fake, only on
 - **The whole page, not the screen.** A control below the fold is a candidate like any other, so the agent does not scroll around looking for it. That is why the average stays near two steps.
 - **The same read on every Chromium.** 2,876 controls on the Jupiter article in local Chrome, in headless-shell, in every hosted service tested — no dependence on window size.
 - **Clicks cannot miss.** An action is dispatched on the element it was offered for; there is no coordinate to go stale between reading the page and acting on it.
-- **Cheaper browsers become usable.** Engines that skip rendering — Moli, Lightpanda — are faster and lighter to run, and the reading method most agents rely on breaks on exactly them.
+- **Cheaper browsers become usable.** Engines that render lazily or not at all — Moli, Lightpanda — are faster and lighter to run, and the reading method most agents rely on breaks on exactly them.
 
 ## Try it
 
