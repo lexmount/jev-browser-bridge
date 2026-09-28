@@ -2,7 +2,7 @@
 
 52 seconds · English narration and captions · 1920 × 1080
 
-[Watch the video](jev-browser-bridge-intro.mp4) · [English subtitles (SRT)](jev-browser-bridge.en.srt) · [WebVTT](jev-browser-bridge.en.vtt)
+[Watch the video](https://lexmount.github.io/jev-browser-bridge/assets/video/) · [English subtitles (SRT)](jev-browser-bridge.en.srt) · [WebVTT](jev-browser-bridge.en.vtt)
 
 **00:00** — Connect Jev to the browser you choose. Cloud, local, or self-hosted.
 
