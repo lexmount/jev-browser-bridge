@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev Browser Bridge · four browsers, two readers</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --ink: #151c24; --ink2: #4d5967; --ink3: #8894a1;
+    --line: #dfe4ea; --soft: #eef1f4;
+    --ok: #1f7a5c; --ok-soft: #e3f3ec; --bad: #b3261e; --bad-soft: #fbe9e7;
+    --run: #5a6b7c; --bridge: #0e7490; --bridge-soft: #e0f2f7; --pos: #6b5bb5; --pos-soft: #eeebf8;
+    --sans: Inter, "Segoe UI", -apple-system, system-ui, sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+  body { padding: 16px; }
+  .stage { width: 1200px; margin: 0 auto; transform-origin: top left; }
+  .frame { width: 1200px; height: 800px; background: var(--bg); padding: 22px 26px 18px; display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: flex-end; gap: 18px; }
+  .kicker { font: 600 11px var(--mono); letter-spacing: .12em; color: var(--ink3); text-transform: uppercase; }
+  h1 { margin: 4px 0 2px; font-size: 25px; letter-spacing: -.3px; }
+  .sub { font-size: 13px; color: var(--ink2); }
+  .sub code { font: 500 12px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  .clock { margin-left: auto; text-align: right; }
+  .clock .t { font: 600 30px var(--mono); letter-spacing: -.5px; }
+  .clock .l { font: 500 11px var(--mono); color: var(--ink3); letter-spacing: .08em; }
+
+  .grid { margin-top: 16px; display: grid; grid-template-columns: 118px repeat(4, 1fr); grid-template-rows: auto 1fr 1fr; gap: 10px; flex: 1; }
+  .colhead { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+  .colhead b { font-size: 16px; }
+  .colhead .kind { display: inline-block; margin-top: 3px; font: 500 11px var(--mono); color: var(--ink2); }
+  .colhead .kind i { font-style: normal; padding: 1px 6px; border-radius: 999px; background: var(--soft); }
+  .rowhead { display: flex; flex-direction: column; justify-content: center; padding-right: 4px; }
+  .rowhead b { font-size: 14px; line-height: 1.25; }
+  .rowhead span { font-size: 11.5px; color: var(--ink2); margin-top: 5px; line-height: 1.35; }
+  .rowhead.bridge b { color: var(--bridge); } .rowhead.pos b { color: var(--pos); }
+
+  .cell { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .cell.win { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+  .cell.lose { border-color: #e4b4ae; box-shadow: 0 0 0 2px var(--bad-soft); }
+  .pill { align-self: flex-start; font: 600 11px var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--soft); color: var(--run); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .count { margin-top: 8px; display: flex; align-items: baseline; gap: 7px; }
+  .count .n { font: 700 30px var(--mono); letter-spacing: -1px; }
+  .count .u { font-size: 11px; line-height: 1.2; color: var(--ink2); }
+  .act { margin-top: 6px; min-height: 40px; font-size: 13px; line-height: 1.35; }
+  .op { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 5px; margin-right: 5px; color: #fff; background: var(--ink2); }
+  .op.CLICK { background: #2f6fb0; } .op.TYPE_TEXT { background: #8a5a14; } .op.DONE { background: var(--ok); } .op.BLOCKED { background: var(--bad); } .op.WAIT { background: var(--ink3); }
+  .tgt { font-weight: 600; }
+  .route { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; font-size: 12.5px; font-weight: 600; }
+  .route .step { white-space: nowrap; } .route .arrow { color: var(--ink3); margin: 0 3px; }
+  .bars { margin-top: 4px; }
+  .bar { display: grid; grid-template-columns: 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--ink2); margin-top: 3px; }
+  .bar .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .bar .track { grid-column: 1 / 2; height: 5px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: -1px; }
+  .bar .fill { height: 100%; background: var(--ink3); }
+  .bar.chosen .fill { background: var(--bridge); } .pos .bar.chosen .fill { background: var(--pos); }
+  .bar .p { grid-row: 1 / span 2; grid-column: 2; font: 500 11px var(--mono); text-align: right; }
+  .url { margin-top: auto; padding-top: 7px; border-top: 1px dashed var(--line); font: 500 11.5px var(--mono); color: var(--ink2); display: flex; justify-content: space-between; }
+  .url .path.arrived { color: var(--ok); font-weight: 700; }
+  .banner { position: absolute; left: 10px; right: 10px; bottom: 34px; padding: 7px 11px; border-radius: 9px; font-size: 13px; font-weight: 700; color: #fff; display: flex; flex-direction: column; gap: 1px; }
+  .banner.ok { background: var(--ok); } .banner.bad { background: var(--bad); }
+  .banner small { font-weight: 400; opacity: .92; font-size: 11.5px; }
+
+  footer { margin-top: 12px; display: flex; align-items: center; gap: 14px; }
+  .timeline { flex: 1; height: 6px; border-radius: 3px; background: var(--line); position: relative; }
+  .timeline .done { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ink2); }
+  .timeline .knob { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #fff; border: 3px solid var(--ink2); }
+  .note { font-size: 11.5px; color: var(--ink3); }
+  .note.final { font-size: 13.5px; color: var(--ink); font-weight: 600; }
+  .note.final .g { color: var(--ok); } .note.final .r { color: var(--bad); }
+  .controls { display: flex; gap: 8px; }
+  .controls button { font: 600 13px var(--sans); border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .controls button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  body.capture { padding: 0; } body.capture .controls { display: none; }
+  .summary { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<div class="frame">
+  <header>
+    <div>
+      <div class="kicker">Same task · same Jev model · four browsers · two ways to read the page</div>
+      <h1>“Open the article about Latte”</h1>
+      <div class="sub">Starts on <code>en.wikipedia.org/wiki/Espresso</code>. A run succeeds when the browser ends on <code>/wiki/Latte</code>.</div>
+    </div>
+    <div class="clock"><div class="t" id="clock">0.0 s</div><div class="l">SHARED CLOCK · REAL TIME</div></div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <div class="controls"><button class="primary" id="play">❚❚ Pause</button><button id="restart">↺</button></div>
+    <div class="timeline" id="timeline"><div class="done" id="tdone"></div><div class="knob" id="tknob"></div></div>
+    <div class="note" id="note">Recorded runs · controls = interactive elements each reader found</div>
+  </footer>
+</div>
+</div>
+
+<script>
+const TRACES = {"bridge-chrome": {"ok": true, "status": "done", "secs": 3.17, "decisions": [{"t0": 0.05, "t1": 1.15, "op": "CLICK", "op_p": 0.57, "controls": 250, "target": "caffè latte", "target_p": 0.6900000000000001, "top": [["caffè latte", 0.69], ["Caffè latte", 0.15], ["Open Search Wikipedia · form", 0.05]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.31, "t1": 3.17, "op": "DONE", "op_p": 0.94, "controls": 250, "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-lightpanda": {"ok": true, "status": "done", "secs": 4.0, "decisions": [{"t0": 0.04, "t1": 1.23, "op": "CLICK", "op_p": 0.53, "controls": 250, "target": "caffè latte", "target_p": 0.44, "top": [["caffè latte", 0.44], ["Caffè latte", 0.29], ["Latte macchiato", 0.09]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.04, "t1": 4.0, "op": "DONE", "op_p": 0.95, "controls": 250, "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-moli": {"ok": true, "status": "done", "secs": 6.01, "decisions": [{"t0": 1.23, "t1": 2.41, "op": "CLICK", "op_p": 0.49, "controls": 250, "target": "caffè latte", "target_p": 0.66, "top": [["caffè latte", 0.66], ["Caffè latte", 0.14], ["Open Search Wikipedia · form", 0.06]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 5.29, "t1": 6.01, "op": "DONE", "op_p": 0.94, "controls": 250, "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-obscura": {"ok": true, "status": "done", "secs": 10.37, "decisions": [{"t0": 1.63, "t1": 3.66, "op": "CLICK", "op_p": 0.97, "controls": 250, "target": "Latte", "target_p": 1.0, "top": [["Latte", 1.0], ["Contact us", 0.0], ["Aragonés", 0.0]], "read": 1219, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 9.12, "t1": 10.37, "op": "DONE", "op_p": 0.98, "controls": 250, "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-chrome": {"ok": true, "status": "done", "secs": 4.06, "decisions": [{"t0": 0.01, "t1": 1.08, "op": "TYPE_TEXT", "op_p": 0.93, "controls": 48, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "path": "/wiki/Espresso"}, {"t0": 1.12, "t1": 1.4, "op": "TYPE_TEXT", "op_p": 0.91, "controls": 49, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "path": "/wiki/Espresso"}, {"t0": 1.69, "t1": 2.14, "op": "CLICK", "op_p": 0.94, "controls": 49, "target": "Search", "target_p": 0.93, "top": [["Search", 0.93], ["Open Search Wikipedia", 0.03], ["link", 0.01]], "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.98, "t1": 3.52, "op": "DONE", "op_p": 0.8, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}, {"t0": 3.54, "t1": 4.06, "op": "DONE", "op_p": 0.77, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-lightpanda": {"ok": false, "status": "blocked", "secs": 2.88, "decisions": [{"t0": 0.09, "t1": 2.88, "op": "BLOCKED", "op_p": 0.77, "controls": 17, "url": "https://en.wikipedia.org/wiki/Espresso", "top": [], "path": "/wiki/Espresso"}]}, "position-moli": {"ok": true, "status": "done", "secs": 12.08, "decisions": [{"t0": 0.37, "t1": 1.51, "op": "TYPE_TEXT", "op_p": 0.92, "controls": 49, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "path": "/wiki/Espresso"}, {"t0": 6.64, "t1": 7.7, "op": "CLICK", "op_p": 0.93, "controls": 49, "target": "Search", "target_p": 0.7, "top": [["Search", 0.7], ["Open Search Wikipedia", 0.29], ["link", 0.01]], "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 11.54, "t1": 12.08, "op": "DONE", "op_p": 0.8, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-obscura": {"ok": false, "status": "error: StalePage: Document is navigating", "secs": 1.84, "decisions": []}};
+const BROWSERS = [
+  ['chrome', 'Chrome', 'draws pages'],
+  ['moli', 'Moli', 'draws on demand'],
+  ['lightpanda', 'Lightpanda', 'never draws'],
+  ['obscura', 'Obscura', 'never draws'],
+];
+const ROWS = [
+  ['position', 'Position-based reader', 'asks the layout engine what is on screen', 'pos'],
+  ['bridge', 'Jev Browser Bridge', 'reads the document, acts on elements', 'bridge'],
+];
+const END = Math.max(...Object.values(TRACES).map(t => t.secs)) + 0.6;
+const HOLD = 3.0;
+const TOTAL = END + HOLD;
+
+const grid = document.getElementById('grid');
+grid.innerHTML = '<div></div>' + BROWSERS.map(([, name, kind]) =>
+  `<div class="colhead"><b>${name}</b><br><span class="kind"><i>${kind}</i></span></div>`).join('')
+  + ROWS.map(([arm, title, sub, cls]) =>
+    `<div class="rowhead ${cls}"><b>${title}</b><span>${sub}</span></div>`
+    + BROWSERS.map(([b]) => `<div class="cell ${cls}" id="c-${arm}-${b}"></div>`).join('')).join('');
+
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+const pct = p => p == null ? '' : `${Math.round(p * 100)}%`;
+
+function cellHTML(trace, t) {
+  const ds = trace.decisions;
+  const answered = ds.filter(d => d.t1 <= t);
+  const last = answered[answered.length - 1];
+  const pending = ds.find(d => d.t0 <= t && d.t1 > t);
+  const finished = t >= trace.secs;
+  let pill = ['Reading the page…', ''];
+  if (pending) pill = ['Jev deciding…', ''];
+  else if (last) pill = [`Step ${answered.length} done`, ''];
+  let banner = '';
+  let cls = '';
+  if (finished) {
+    if (trace.ok) {
+      pill = ['✓ Opened Latte', 'ok']; cls = 'win';
+      banner = `<div class="banner ok">✓ Success <small>${answered.length} decisions · ${trace.secs.toFixed(1)} s</small></div>`;
+    } else if (!ds.length) {
+      pill = ['✗ Page never readable', 'bad']; cls = 'lose';
+      banner = `<div class="banner bad">✗ Could not read the page <small>“Document is navigating”</small></div>`;
+    } else {
+      pill = ['✗ Gave up', 'bad']; cls = 'lose';
+      banner = `<div class="banner bad">✗ Blocked <small>no way forward among the ${answered[0]?.read ?? answered[0]?.controls} controls it found</small></div>`;
+    }
+  }
+  const shown = last;
+  // The number that matters is what each reader found on the starting page.
+  const first = answered[0];
+  const n = first ? (first.read ?? first.controls) : (finished && !ds.length ? '0' : '…');
+  let act = '<span class="u" style="color:var(--ink3)">waiting for the first decision</span>';
+  let bars = '';
+  if (shown) {
+    let what = '';
+    if (shown.op === 'TYPE_TEXT') what = shown.typed ? `<span class="tgt">“${esc(shown.typed)}”</span> into ${esc(shown.target)}` : `into <span class="tgt">${esc(shown.target)}</span>`;
+    else if (shown.target) what = `<span class="tgt">${esc(shown.target)}</span>`;
+    else if (shown.op === 'DONE') what = 'goal reached';
+    else if (shown.op === 'BLOCKED') what = 'no offered action can make progress';
+    act = `<span class="op ${shown.op}">${shown.op}</span>${what}`;
+    if (shown.top && shown.top.length) {
+      bars = '<div class="bars">' + shown.top.slice(0, 3).map(([name, p], i) =>
+        `<div class="bar ${i === 0 && name === shown.target ? 'chosen' : ''}"><div class="name">${esc(name)}</div><div class="p">${pct(p)}</div><div class="track"><div class="fill" style="width:${Math.max(2, p * 100)}%"></div></div></div>`).join('') + '</div>';
+    } else if (shown.op_p != null) {
+      bars = `<div class="bars"><div class="bar chosen"><div class="name">${shown.op}</div><div class="p">${pct(shown.op_p)}</div><div class="track"><div class="fill" style="width:${shown.op_p * 100}%"></div></div></div></div>`;
+    }
+  }
+  if (finished && ds.length) {
+    // The whole route, so the two ways of getting there can be compared.
+    const short = d => d.op === 'TYPE_TEXT' ? (d.typed ? `“${esc(d.typed)}”` : '')
+      : d.target ? esc(d.target.split(' · ')[0].slice(0, 22)) : '';
+    const route = ds.filter((d, i) => !(d.op === 'DONE' && ds[i - 1]?.op === 'DONE'));
+    act = '<div class="route">' + route.map(d =>
+      `<span class="step"><span class="op ${d.op}">${d.op === 'TYPE_TEXT' ? 'TYPE' : d.op}</span>${short(d)}</span>`)
+      .join('<span class="arrow">→</span>') + '</div>';
+    bars = '';
+  }
+  const path = (shown && shown.path) || (ds.length || !finished ? '/wiki/Espresso' : '—');
+  const arrived = path.includes('/wiki/Latte');
+  return [cls, `<div class="pill ${pill[1]}">${pill[0]}</div>
+    <div class="count"><span class="n">${n}</span><span class="u">controls found<br>on the start page</span></div>
+    <div class="act">${act}</div>${bars}
+    <div class="url"><span class="path ${arrived ? 'arrived' : ''}">${esc(path)}</span><span>${Math.min(t, trace.secs).toFixed(1)} s</span></div>${banner}`];
+}
+
+function render(t) {
+  const tc = Math.min(t, END);
+  document.getElementById('clock').textContent = `${tc.toFixed(1)} s`;
+  for (const [arm] of ROWS) for (const [b] of BROWSERS) {
+    const el = document.getElementById(`c-${arm}-${b}`);
+    const [cls, html] = cellHTML(TRACES[`${arm}-${b}`], tc);
+    el.innerHTML = html;
+    el.classList.toggle('win', cls === 'win');
+    el.classList.toggle('lose', cls === 'lose');
+  }
+  const note = document.getElementById('note');
+  const over = t >= END - 0.3;
+  note.classList.toggle('final', over);
+  note.innerHTML = over
+    ? '<span class="g">Chrome, Moli:</span> both readers finish. <span class="r">Lightpanda, Obscura:</span> only Jev Browser Bridge does.'
+    : 'Recorded runs · controls = interactive elements each reader found';
+  const f = Math.min(1, tc / END) * 100;
+  document.getElementById('tdone').style.width = f + '%';
+  document.getElementById('tknob').style.left = f + '%';
+}
+window.render = render;
+window.TOTAL = TOTAL;
+
+const params = new URLSearchParams(location.search);
+if (params.has('capture')) {
+  document.body.classList.add('capture');
+  render(Number(params.get('t') || 0));
+} else {
+  let t = 0, playing = true, last = performance.now();
+  const btn = document.getElementById('play');
+  const fit = () => {
+    const s = Math.min(1, (innerWidth - 32) / 1200);
+    const stage = document.getElementById('stage');
+    stage.style.transform = `scale(${s})`;
+    stage.style.height = `${800 * s}px`;
+  };
+  addEventListener('resize', fit); fit();
+  btn.onclick = () => { playing = !playing; btn.textContent = playing ? '❚❚ Pause' : '▶ Play'; if (playing && t >= TOTAL) t = 0; };
+  document.getElementById('restart').onclick = () => { t = 0; playing = true; btn.textContent = '❚❚ Pause'; };
+  document.getElementById('timeline').onclick = e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * END;
+  };
+  const tick = now => {
+    if (playing) { t += (now - last) / 1000; if (t >= TOTAL) t = 0; }
+    last = now; render(t); requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
