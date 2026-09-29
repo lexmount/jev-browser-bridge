@@ -44,9 +44,12 @@
   .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--soft); color: var(--ink2); }
   .pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
   .time { font: 500 11px var(--mono); color: var(--ink3); }
+  .busy { position: relative; height: 3px; margin-top: 5px; border-radius: 2px; background: var(--soft); overflow: hidden; }
+  .busy i { position: absolute; top: 0; bottom: 0; width: 30%; border-radius: 2px; }
+  .bridge .busy i { background: var(--bridge); } .pos .busy i { background: var(--pos); }
 
-  .visual { position: relative; margin-top: 7px; height: 176px; border-radius: 8px; overflow: hidden; background: #fafbfc; border: 1px solid var(--line); }
-  .visual img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .visual { position: relative; margin-top: 5px; height: 176px; border-radius: 8px; overflow: hidden; background: #fafbfc; border: 1px solid var(--line); }
+  .visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
   .visual .src { position: absolute; left: 6px; top: 6px; font: 600 10px var(--mono); padding: 2px 6px; border-radius: 5px; background: rgba(20,26,33,.78); color: #fff; }
   .visual .wait { position: absolute; inset: 0; display: grid; place-items: center; font: 500 12px var(--mono); color: var(--ink3); }
   .term { position: absolute; inset: 0; background: #11161c; color: #cfd8e1; font: 500 11.5px/1.5 var(--mono); padding: 28px 10px 8px; }
@@ -124,21 +127,27 @@ document.getElementById('grid').innerHTML = '<div></div>'
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
 const pct = p => p == null ? '' : `${Math.round(p * 100)}%`;
+// Motion is a function of the clock, so every captured frame is exact.
+const ease = x => { x = Math.max(0, Math.min(1, x)); return 1 - Math.pow(1 - x, 3); };
 const shortName = s => esc(String(s || '').split(' · ')[0].slice(0, 24));
 
 function visual(key, tr, answered, t) {
   const withShot = answered.filter(d => d.thumb);
   const errored = answered.find(d => d.shot_error) || (tr.fail_shot?.shot_error && t >= tr.secs ? tr.fail_shot : null);
   if (withShot.length) {
-    const d = withShot[withShot.length - 1];
+    const d = withShot[withShot.length - 1], prev = withShot[withShot.length - 2];
     const src = key.endsWith('lightpanda') ? 'Lightpanda’s own screenshot' : 'screenshot';
-    return `<img src="${d.thumb}" alt=""><span class="src">${src}</span>`;
+    const a = ease((t - d.t1) / 0.35);
+    return (prev ? `<img class="under" src="${prev.thumb}" alt="">` : '')
+      + `<img class="over" src="${d.thumb}" alt="" style="opacity:${prev ? a : Math.max(a, 0)}">`
+      + `<span class="src">${src}</span>`;
   }
   if (errored) {
     const err = (errored.shot_error || '').replace(/^RuntimeError:\s*/, '');
     const extra = !tr.decisions.length && t >= tr.secs
       ? `<br><span class="c">› read the page</span><br><span class="e">✗ ${esc(tr.status.replace(/^error:\s*(StalePage:\s*)?/, ''))}</span>` : '';
-    return `<div class="term"><span class="c">› Page.captureScreenshot</span><br><span class="e">✗ ${esc(err)}</span>${extra}</div><span class="src">no picture</span>`;
+    const ta = ease((t - (errored.t1 ?? tr.secs)) / 0.35);
+    return `<div class="term" style="opacity:${Math.max(ta, 0.001)}"><span class="c">› Page.captureScreenshot</span><br><span class="e">✗ ${esc(err)}</span>${extra}</div><span class="src">no picture</span>`;
   }
   return '<div class="wait">loading the page…</div>';
 }
@@ -147,15 +156,17 @@ function cell(key, tr, t) {
   const ds = tr.decisions, answered = ds.filter(d => d.t1 <= t), last = answered[answered.length - 1];
   const pending = ds.find(d => d.t0 <= t && d.t1 > t), finished = t >= tr.secs, first = answered[0];
   let pill = [pending ? 'Jev deciding…' : last ? `step ${answered.length}` : 'reading the page…', ''], cls = '', banner = '';
+  const ba = ease((t - tr.secs) / 0.4), bstyle = `style="opacity:${ba};transform:translateY(${(1 - ba) * 14}px)"`;
   if (finished) {
     if (tr.ok) { pill = ['✓ opened Latte', 'ok']; cls = 'win';
-      banner = `<div class="banner ok">✓ Success<small>${ds.length} decisions · ${tr.secs.toFixed(1)} s</small></div>`; }
+      banner = `<div class="banner ok" ${bstyle}>✓ Success<small>${ds.length} decisions · ${tr.secs.toFixed(1)} s</small></div>`; }
     else if (!ds.length) { pill = ['✗ page never readable', 'bad']; cls = 'lose';
-      banner = `<div class="banner bad">✗ Could not read the page<small>no decision was ever made</small></div>`; }
+      banner = `<div class="banner bad" ${bstyle}>✗ Could not read the page<small>no decision was ever made</small></div>`; }
     else { pill = ['✗ gave up', 'bad']; cls = 'lose';
-      banner = `<div class="banner bad">✗ Blocked<small>none of its ${first.read ?? first.controls} controls leads to Latte</small></div>`; }
+      banner = `<div class="banner bad" ${bstyle}>✗ Blocked<small>none of its ${first.read ?? first.controls} controls leads to Latte</small></div>`; }
   }
-  const n = first ? (first.read ?? first.controls) : (finished && !ds.length ? 0 : '…');
+  const full = first ? (first.read ?? first.controls) : 0;
+  const n = first ? Math.round(full * ease((t - first.t1) / 0.5)) : (finished && !ds.length ? 0 : '…');
   let act = '', bars = '';
   if (finished && ds.length) {
     const route = ds.filter((d, i) => !(d.op === 'DONE' && ds[i - 1]?.op === 'DONE'));
@@ -164,7 +175,7 @@ function cell(key, tr, t) {
     const what = last.op === 'TYPE_TEXT' ? (last.typed ? `<span class="tgt">“${esc(last.typed)}”</span> into ${shortName(last.target)}` : `into <span class="tgt">${shortName(last.target)}</span>`)
       : last.target ? `<span class="tgt">${esc(last.target)}</span>` : last.op === 'DONE' ? 'goal reached' : last.op === 'BLOCKED' ? 'nothing it can do' : '';
     act = `<span class="op ${last.op}">${last.op}</span>${what}`;
-    bars = (last.top || []).slice(0, 2).map(([name, p], i) => `<div class="bar ${i === 0 ? 'chosen' : ''}"><div class="name">${esc(name)}</div><div class="p">${pct(p)}</div><div class="track"><div class="fill" style="width:${Math.max(2, p * 100)}%"></div></div></div>`).join('');
+    bars = (last.top || []).slice(0, 2).map(([name, p], i) => `<div class="bar ${i === 0 ? 'chosen' : ''}"><div class="name">${esc(name)}</div><div class="p">${pct(p * ease((t - last.t1) / 0.45))}</div><div class="track"><div class="fill" style="width:${Math.max(1, p * 100 * ease((t - last.t1) / 0.45))}%"></div></div></div>`).join('');
   }
   // What the reader actually got, for the browsers that give no picture.
   let saw = '';
@@ -181,6 +192,7 @@ function cell(key, tr, t) {
   }
   const path = (last && last.path) || (ds.length || !finished ? '/wiki/Espresso' : '—');
   return [cls, `<div class="top"><span class="pill ${pill[1]}">${pill[0]}</span><span class="time">${Math.min(t, tr.secs).toFixed(1)} s</span></div>
+    <div class="busy">${!finished && (pending || !last) ? `<i style="left:${((t * 0.9) % 1.3 - 0.3) * 100}%"></i>` : ''}</div>
     <div class="visual">${visual(key, tr, answered, t)}${banner}</div>
     <div class="count"><span class="n">${n}</span><span class="u">controls found<br>on the start page</span></div>
     <div class="act">${act}</div>${bars}${saw}
