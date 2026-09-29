@@ -10,12 +10,12 @@
 If it speaks CDP, it runs Jev.
 
 <p align="center">
-  <a href="https://lexmount.github.io/jev-browser-bridge/assets/video/">
-    <img src="assets/video/jev-browser-bridge-preview.gif" alt="Watch the 52-second Jev Browser Bridge introduction: connect Jev to cloud, local, and self-hosted CDP browsers" width="100%">
+  <a href="https://lexmount.github.io/jev-browser-bridge/assets/demo/">
+    <img src="assets/demo/four-browsers.gif" alt="The same Jev task on Chrome, Moli, Lightpanda and Obscura, read two ways: the position-based reader finishes only on the browsers that draw pages, Jev Browser Bridge finishes on all four" width="100%">
   </a>
 </p>
 <p align="center">
-  <strong><a href="https://lexmount.github.io/jev-browser-bridge/assets/video/">▶ Watch the 52-second introduction</a></strong> · English narration and captions · <a href="assets/video/TRANSCRIPT.md">Transcript</a>
+  One task, one Jev model, four browsers, each read two ways — recorded runs on a shared clock. Pictures are each browser's own screenshot; Lightpanda answers with a placeholder and Obscura has no screenshot at all. The position-based reader finishes on the browsers that draw pages; <b>Jev Browser Bridge finishes on all four</b>. <a href="https://lexmount.github.io/jev-browser-bridge/assets/demo/">Open the player</a> to pause, scrub and read each run's raw trace.
 </p>
 
 <p align="center">
