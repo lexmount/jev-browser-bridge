@@ -15,7 +15,7 @@ If it speaks CDP, it runs Jev.
   </a>
 </p>
 <p align="center">
-  Recorded runs on a shared clock. The position-based reader finishes on the browsers that draw pages; <b>Jev Browser Bridge finishes on all four</b>. <a href="https://lexmount.github.io/jev-browser-bridge/assets/demo/">Open the player</a> to pause and scrub.
+  One task, one Jev model, four browsers, each read two ways — recorded runs on a shared clock. Pictures are each browser's own screenshot; Lightpanda answers with a placeholder and Obscura has no screenshot at all. The position-based reader finishes on the browsers that draw pages; <b>Jev Browser Bridge finishes on all four</b>. <a href="https://lexmount.github.io/jev-browser-bridge/assets/demo/">Open the player</a> to pause, scrub and read each run's raw trace.
 </p>
 
 <p align="center">

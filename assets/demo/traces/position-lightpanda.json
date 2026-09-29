@@ -1,0 +1,44 @@
+{
+ "arm": "position",
+ "browser": "lightpanda",
+ "task": "latte",
+ "goal": "Open the article about Latte",
+ "start": "https://en.wikipedia.org/wiki/Espresso",
+ "ok": false,
+ "status": "blocked",
+ "url": "https://en.wikipedia.org/wiki/Espresso",
+ "decisions": [
+  {
+   "t0": 0.09,
+   "t1": 0.85,
+   "op": "BLOCKED",
+   "op_p": 0.78,
+   "controls": 17,
+   "offered": [
+    "Jump to content",
+    "Main page",
+    "Contents",
+    "Current events",
+    "Random article",
+    "About Wikipedia",
+    "Contact us",
+    "Help",
+    "Learn to edit",
+    "Community portal",
+    "Recent changes",
+    "Upload file",
+    "Special pages",
+    "Wikipedia \n\t\t The Free Encyclopedia",
+    "Move Main menu to sidebar",
+    "Hide Main menu",
+    "Main menu"
+   ],
+   "shot": "00-blocked.png",
+   "url": "https://en.wikipedia.org/wiki/Espresso",
+   "thumb": "shots/position-lightpanda/00-blocked.jpg",
+   "path": "/wiki/Espresso"
+  }
+ ],
+ "secs": 0.85,
+ "fail_shot": {}
+}

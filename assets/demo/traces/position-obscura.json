@@ -1,0 +1,15 @@
+{
+ "arm": "position",
+ "browser": "obscura",
+ "task": "latte",
+ "goal": "Open the article about Latte",
+ "start": "https://en.wikipedia.org/wiki/Espresso",
+ "ok": false,
+ "status": "error: StalePage: Document is navigating",
+ "url": "",
+ "decisions": [],
+ "secs": 1.44,
+ "fail_shot": {
+  "shot_error": "RuntimeError: Unknown Page method: captureScreenshot"
+ }
+}

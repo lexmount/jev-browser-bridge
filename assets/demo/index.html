@@ -6,235 +6,214 @@
 <title>Jev Browser Bridge · four browsers, two readers</title>
 <style>
   :root {
-    --bg: #f4f6f8; --card: #ffffff; --ink: #151c24; --ink2: #4d5967; --ink3: #8894a1;
-    --line: #dfe4ea; --soft: #eef1f4;
-    --ok: #1f7a5c; --ok-soft: #e3f3ec; --bad: #b3261e; --bad-soft: #fbe9e7;
-    --run: #5a6b7c; --bridge: #0e7490; --bridge-soft: #e0f2f7; --pos: #6b5bb5; --pos-soft: #eeebf8;
+    --bg: #f3f5f7; --card: #fff; --ink: #141a21; --ink2: #4b5764; --ink3: #8a95a1;
+    --line: #dde3e9; --soft: #eef1f4;
+    --ok: #1f7a5c; --ok-soft: #e2f3eb; --bad: #b3261e; --bad-soft: #fbe8e6;
+    --bridge: #0e7490; --pos: #6b5bb5;
     --sans: Inter, "Segoe UI", -apple-system, system-ui, sans-serif;
     --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
   body { padding: 16px; }
-  .stage { width: 1200px; margin: 0 auto; transform-origin: top left; }
-  .frame { width: 1200px; height: 800px; background: var(--bg); padding: 22px 26px 18px; display: flex; flex-direction: column; }
-
-  header { display: flex; align-items: flex-end; gap: 18px; }
+  .stage { width: 1400px; margin: 0 auto; transform-origin: top left; }
+  .frame { width: 1400px; height: 1000px; padding: 20px 24px 16px; display: flex; flex-direction: column; background: var(--bg); }
+  header { display: flex; align-items: flex-end; }
   .kicker { font: 600 11px var(--mono); letter-spacing: .12em; color: var(--ink3); text-transform: uppercase; }
-  h1 { margin: 4px 0 2px; font-size: 25px; letter-spacing: -.3px; }
+  h1 { margin: 4px 0 2px; font-size: 26px; letter-spacing: -.3px; }
   .sub { font-size: 13px; color: var(--ink2); }
   .sub code { font: 500 12px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
   .clock { margin-left: auto; text-align: right; }
-  .clock .t { font: 600 30px var(--mono); letter-spacing: -.5px; }
-  .clock .l { font: 500 11px var(--mono); color: var(--ink3); letter-spacing: .08em; }
+  .clock .t { font: 600 32px var(--mono); letter-spacing: -.5px; }
+  .clock .l { font: 500 11px var(--mono); color: var(--ink3); letter-spacing: .08em; white-space: nowrap; }
+  .clock { flex-shrink: 0; padding-left: 16px; }
 
-  .grid { margin-top: 16px; display: grid; grid-template-columns: 118px repeat(4, 1fr); grid-template-rows: auto 1fr 1fr; gap: 10px; flex: 1; }
-  .colhead { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
-  .colhead b { font-size: 16px; }
-  .colhead .kind { display: inline-block; margin-top: 3px; font: 500 11px var(--mono); color: var(--ink2); }
-  .colhead .kind i { font-style: normal; padding: 1px 6px; border-radius: 999px; background: var(--soft); }
-  .rowhead { display: flex; flex-direction: column; justify-content: center; padding-right: 4px; }
-  .rowhead b { font-size: 14px; line-height: 1.25; }
-  .rowhead span { font-size: 11.5px; color: var(--ink2); margin-top: 5px; line-height: 1.35; }
+  .grid { margin-top: 14px; display: grid; grid-template-columns: 112px repeat(4, 1fr); grid-template-rows: auto 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
+  .colhead { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: flex; align-items: baseline; gap: 10px; }
+  .colhead b { font-size: 17px; }
+  .colhead i { font: 500 11px var(--mono); font-style: normal; color: var(--ink2); padding: 1px 7px; border-radius: 999px; background: var(--soft); }
+  .rowhead { display: flex; flex-direction: column; justify-content: center; }
+  .rowhead b { font-size: 15px; line-height: 1.25; }
+  .rowhead span { font-size: 11.5px; color: var(--ink2); margin-top: 6px; line-height: 1.35; }
   .rowhead.bridge b { color: var(--bridge); } .rowhead.pos b { color: var(--pos); }
 
-  .cell { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .cell { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px 8px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
   .cell.win { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
-  .cell.lose { border-color: #e4b4ae; box-shadow: 0 0 0 2px var(--bad-soft); }
-  .pill { align-self: flex-start; font: 600 11px var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--soft); color: var(--run); }
+  .cell.lose { border-color: #e2b1ab; box-shadow: 0 0 0 2px var(--bad-soft); }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--soft); color: var(--ink2); }
   .pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
-  .count { margin-top: 8px; display: flex; align-items: baseline; gap: 7px; }
-  .count .n { font: 700 30px var(--mono); letter-spacing: -1px; }
-  .count .u { font-size: 11px; line-height: 1.2; color: var(--ink2); }
-  .act { margin-top: 6px; min-height: 40px; font-size: 13px; line-height: 1.35; }
-  .op { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 5px; margin-right: 5px; color: #fff; background: var(--ink2); }
-  .op.CLICK { background: #2f6fb0; } .op.TYPE_TEXT { background: #8a5a14; } .op.DONE { background: var(--ok); } .op.BLOCKED { background: var(--bad); } .op.WAIT { background: var(--ink3); }
-  .tgt { font-weight: 600; }
-  .route { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; font-size: 12.5px; font-weight: 600; }
-  .route .step { white-space: nowrap; } .route .arrow { color: var(--ink3); margin: 0 3px; }
-  .bars { margin-top: 4px; }
-  .bar { display: grid; grid-template-columns: 1fr 38px; gap: 6px; align-items: center; font-size: 11px; color: var(--ink2); margin-top: 3px; }
-  .bar .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .bar .track { grid-column: 1 / 2; height: 5px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: -1px; }
-  .bar .fill { height: 100%; background: var(--ink3); }
-  .bar.chosen .fill { background: var(--bridge); } .pos .bar.chosen .fill { background: var(--pos); }
-  .bar .p { grid-row: 1 / span 2; grid-column: 2; font: 500 11px var(--mono); text-align: right; }
-  .url { margin-top: auto; padding-top: 7px; border-top: 1px dashed var(--line); font: 500 11.5px var(--mono); color: var(--ink2); display: flex; justify-content: space-between; }
-  .url .path.arrived { color: var(--ok); font-weight: 700; }
-  .banner { position: absolute; left: 10px; right: 10px; bottom: 34px; padding: 7px 11px; border-radius: 9px; font-size: 13px; font-weight: 700; color: #fff; display: flex; flex-direction: column; gap: 1px; }
-  .banner.ok { background: var(--ok); } .banner.bad { background: var(--bad); }
-  .banner small { font-weight: 400; opacity: .92; font-size: 11.5px; }
+  .time { font: 500 11px var(--mono); color: var(--ink3); }
 
-  footer { margin-top: 12px; display: flex; align-items: center; gap: 14px; }
-  .timeline { flex: 1; height: 6px; border-radius: 3px; background: var(--line); position: relative; }
-  .timeline .done { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ink2); }
-  .timeline .knob { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #fff; border: 3px solid var(--ink2); }
-  .note { font-size: 11.5px; color: var(--ink3); }
-  .note.final { font-size: 13.5px; color: var(--ink); font-weight: 600; }
-  .note.final .g { color: var(--ok); } .note.final .r { color: var(--bad); }
+  .visual { position: relative; margin-top: 7px; height: 176px; border-radius: 8px; overflow: hidden; background: #fafbfc; border: 1px solid var(--line); }
+  .visual img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .visual .src { position: absolute; left: 6px; top: 6px; font: 600 10px var(--mono); padding: 2px 6px; border-radius: 5px; background: rgba(20,26,33,.78); color: #fff; }
+  .visual .wait { position: absolute; inset: 0; display: grid; place-items: center; font: 500 12px var(--mono); color: var(--ink3); }
+  .term { position: absolute; inset: 0; background: #11161c; color: #cfd8e1; font: 500 11.5px/1.5 var(--mono); padding: 28px 10px 8px; }
+  .term .c { color: #7fb3d5; } .term .e { color: #ff8a80; }
+  .banner { position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #fff; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+  .banner.ok { background: var(--ok); } .banner.bad { background: var(--bad); }
+  .banner small { font-weight: 400; font-size: 11.5px; opacity: .93; }
+
+  .count { margin-top: 7px; display: flex; align-items: baseline; gap: 7px; }
+  .count .n { font: 700 26px var(--mono); letter-spacing: -1px; }
+  .count .u { font-size: 11px; line-height: 1.2; color: var(--ink2); }
+  .act { margin-top: 4px; font-size: 12.5px; line-height: 1.35; min-height: 18px; }
+  .op { font: 600 10.5px var(--mono); padding: 2px 5px; border-radius: 5px; margin-right: 4px; color: #fff; background: var(--ink2); }
+  .op.CLICK { background: #2f6fb0; } .op.TYPE_TEXT, .op.TYPE { background: #8a5a14; } .op.DONE { background: var(--ok); } .op.BLOCKED { background: var(--bad); } .op.WAIT { background: var(--ink3); }
+  .tgt { font-weight: 600; }
+  .route { display: flex; flex-wrap: wrap; gap: 3px 2px; align-items: center; font-weight: 600; font-size: 12px; }
+  .route .arrow { color: var(--ink3); margin: 0 2px; }
+  .bar { display: grid; grid-template-columns: 1fr 34px; column-gap: 6px; font-size: 10.5px; color: var(--ink2); margin-top: 3px; }
+  .bar .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .bar .p { font: 500 10.5px var(--mono); text-align: right; grid-row: 1 / span 2; grid-column: 2; }
+  .bar .track { height: 4px; border-radius: 2px; background: var(--soft); overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--ink3); }
+  .bridge .bar.chosen .fill { background: var(--bridge); } .pos .bar.chosen .fill { background: var(--pos); }
+  .saw { margin-top: 5px; font-size: 11px; line-height: 1.4; color: var(--ink2); background: var(--soft); border-radius: 6px; padding: 5px 7px; }
+  .saw b { color: var(--ink); } .saw mark { background: #ffd600; color: var(--ink); padding: 0 2px; border-radius: 2px; }
+  .foot { margin-top: auto; padding-top: 5px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; font: 500 11px var(--mono); color: var(--ink2); }
+  .foot .arrived { color: var(--ok); font-weight: 700; }
+  .foot a { color: var(--ink3); text-decoration: none; }
+
+  footer { margin-top: 10px; display: flex; align-items: center; gap: 14px; }
   .controls { display: flex; gap: 8px; }
   .controls button { font: 600 13px var(--sans); border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
   .controls button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
-  body.capture { padding: 0; } body.capture .controls { display: none; }
-  .summary { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
+  .timeline { flex: 1; height: 6px; border-radius: 3px; background: var(--line); position: relative; cursor: pointer; }
+  .timeline .done { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ink2); }
+  .timeline .knob { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #fff; border: 3px solid var(--ink2); }
+  .note { font-size: 11.5px; color: var(--ink3); max-width: 560px; }
+  .note.final { font-size: 14px; color: var(--ink); font-weight: 600; max-width: none; }
+  .note.final .g { color: var(--ok); } .note.final .r { color: var(--bad); }
+  body.capture { padding: 0; } body.capture .controls { display: none; } body.capture .foot a { display: none; }
 </style>
 </head>
 <body>
-<div class="stage" id="stage">
-<div class="frame">
+<div class="stage" id="stage"><div class="frame">
   <header>
     <div>
       <div class="kicker">Same task · same Jev model · four browsers · two ways to read the page</div>
       <h1>“Open the article about Latte”</h1>
-      <div class="sub">Starts on <code>en.wikipedia.org/wiki/Espresso</code>. A run succeeds when the browser ends on <code>/wiki/Latte</code>.</div>
+      <div class="sub">Starts on <code>en.wikipedia.org/wiki/Espresso</code> · succeeds when the browser ends on <code>/wiki/Latte</code> · pictures are each browser's own screenshot; <span style="background:#ffd600;padding:0 3px;border-radius:2px">yellow</span> = element being acted on</div>
     </div>
     <div class="clock"><div class="t" id="clock">0.0 s</div><div class="l">SHARED CLOCK · REAL TIME</div></div>
   </header>
-
   <div class="grid" id="grid"></div>
-
   <footer>
     <div class="controls"><button class="primary" id="play">❚❚ Pause</button><button id="restart">↺</button></div>
     <div class="timeline" id="timeline"><div class="done" id="tdone"></div><div class="knob" id="tknob"></div></div>
-    <div class="note" id="note">Recorded runs · controls = interactive elements each reader found</div>
+    <div class="note" id="note"></div>
   </footer>
-</div>
-</div>
+</div></div>
 
 <script>
-const TRACES = {"bridge-chrome": {"ok": true, "status": "done", "secs": 3.17, "decisions": [{"t0": 0.05, "t1": 1.15, "op": "CLICK", "op_p": 0.57, "controls": 250, "target": "caffè latte", "target_p": 0.6900000000000001, "top": [["caffè latte", 0.69], ["Caffè latte", 0.15], ["Open Search Wikipedia · form", 0.05]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.31, "t1": 3.17, "op": "DONE", "op_p": 0.94, "controls": 250, "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-lightpanda": {"ok": true, "status": "done", "secs": 4.0, "decisions": [{"t0": 0.04, "t1": 1.23, "op": "CLICK", "op_p": 0.53, "controls": 250, "target": "caffè latte", "target_p": 0.44, "top": [["caffè latte", 0.44], ["Caffè latte", 0.29], ["Latte macchiato", 0.09]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.04, "t1": 4.0, "op": "DONE", "op_p": 0.95, "controls": 250, "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-moli": {"ok": true, "status": "done", "secs": 6.01, "decisions": [{"t0": 1.23, "t1": 2.41, "op": "CLICK", "op_p": 0.49, "controls": 250, "target": "caffè latte", "target_p": 0.66, "top": [["caffè latte", 0.66], ["Caffè latte", 0.14], ["Open Search Wikipedia · form", 0.06]], "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 5.29, "t1": 6.01, "op": "DONE", "op_p": 0.94, "controls": 250, "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "bridge-obscura": {"ok": true, "status": "done", "secs": 10.37, "decisions": [{"t0": 1.63, "t1": 3.66, "op": "CLICK", "op_p": 0.97, "controls": 250, "target": "Latte", "target_p": 1.0, "top": [["Latte", 1.0], ["Contact us", 0.0], ["Aragonés", 0.0]], "read": 1219, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 9.12, "t1": 10.37, "op": "DONE", "op_p": 0.98, "controls": 250, "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-chrome": {"ok": true, "status": "done", "secs": 4.06, "decisions": [{"t0": 0.01, "t1": 1.08, "op": "TYPE_TEXT", "op_p": 0.93, "controls": 48, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "path": "/wiki/Espresso"}, {"t0": 1.12, "t1": 1.4, "op": "TYPE_TEXT", "op_p": 0.91, "controls": 49, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "path": "/wiki/Espresso"}, {"t0": 1.69, "t1": 2.14, "op": "CLICK", "op_p": 0.94, "controls": 49, "target": "Search", "target_p": 0.93, "top": [["Search", 0.93], ["Open Search Wikipedia", 0.03], ["link", 0.01]], "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 2.98, "t1": 3.52, "op": "DONE", "op_p": 0.8, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}, {"t0": 3.54, "t1": 4.06, "op": "DONE", "op_p": 0.77, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-lightpanda": {"ok": false, "status": "blocked", "secs": 2.88, "decisions": [{"t0": 0.09, "t1": 2.88, "op": "BLOCKED", "op_p": 0.77, "controls": 17, "url": "https://en.wikipedia.org/wiki/Espresso", "top": [], "path": "/wiki/Espresso"}]}, "position-moli": {"ok": true, "status": "done", "secs": 12.08, "decisions": [{"t0": 0.37, "t1": 1.51, "op": "TYPE_TEXT", "op_p": 0.92, "controls": 49, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "path": "/wiki/Espresso"}, {"t0": 6.64, "t1": 7.7, "op": "CLICK", "op_p": 0.93, "controls": 49, "target": "Search", "target_p": 0.7, "top": [["Search", 0.7], ["Open Search Wikipedia", 0.29], ["link", 0.01]], "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 11.54, "t1": 12.08, "op": "DONE", "op_p": 0.8, "controls": 42, "url": "https://en.wikipedia.org/wiki/Latte", "top": [], "path": "/wiki/Latte"}]}, "position-obscura": {"ok": false, "status": "error: StalePage: Document is navigating", "secs": 1.84, "decisions": []}};
-const BROWSERS = [
-  ['chrome', 'Chrome', 'draws pages'],
-  ['moli', 'Moli', 'draws on demand'],
-  ['lightpanda', 'Lightpanda', 'never draws'],
-  ['obscura', 'Obscura', 'never draws'],
-];
-const ROWS = [
-  ['position', 'Position-based reader', 'asks the layout engine what is on screen', 'pos'],
-  ['bridge', 'Jev Browser Bridge', 'reads the document, acts on elements', 'bridge'],
-];
+const TRACES = {"bridge-chrome": {"ok": true, "status": "done", "secs": 4.11, "decisions": [{"t0": 0.03, "t1": 1.17, "op": "CLICK", "op_p": 0.49, "controls": 250, "target": "caffè latte", "target_p": 0.66, "top": [["caffè latte", 0.66], ["Caffè latte", 0.14], ["Open Search Wikipedia · form", 0.060000000000000005]], "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Etymology and spelling", "2 History", "Toggle History subsection", "2.1 Early history", "2.2 Bezzera's invention", "2.3 Achieving higher pressures", "3 Characteristics", "4 Nutrition", "5 Process", "Toggle Process subsection", "5.1 Roasts", "5.2 Variables", "5.3 Machines", "6 Espresso-based drinks", "7 See also", "8 Notes", "9 References", "10 Works cited", "11 Further reading", "12 External links", "Contents · Contents", "Toggle the table of contents · Contents", "71 languages", "Afrikaans", "Aragonés", "العربية", "مصرى"], "context": "inks such as drip coffee. [6] [7] Espresso serves as the base for other coffee drinks, including cappuccino , caffè latte , and americano . It can be made with various types of coffee beans and roast ", "shot": "00-click.png", "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "focus": [301, 389], "thumb": "shots/bridge-chrome/00-click.jpg", "path": "/wiki/Latte"}, {"t0": 3.36, "t1": 4.11, "op": "DONE", "op_p": 0.93, "controls": 250, "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Definition", "2 Etymology", "3 History", "4 See also", "5 References", "Contents · Contents", "Toggle the table of contents · Contents", "47 languages", "العربية", "Azərbaycanca", "Беларуская", "Български", "閩東語 / Mìng-dĕ̤ng-ngṳ̄", "Cebuano", "Čeština", "Cymraeg", "Dansk", "Deutsch", "Español", "Eesti", "فارسی", "Suomi", "Français", "Հայերեն", "Bahasa Indonesia", "Íslenska", "日本語"], "shot": "01-done.png", "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/bridge-chrome/01-done.jpg", "path": "/wiki/Latte"}], "fail_shot": {}}, "bridge-lightpanda": {"ok": true, "status": "done", "secs": 2.98, "decisions": [{"t0": 0.05, "t1": 1.21, "op": "CLICK", "op_p": 0.52, "controls": 250, "target": "caffè latte", "target_p": 0.4, "top": [["caffè latte", 0.4], ["Caffè latte", 0.29000000000000004], ["Latte macchiato", 0.09]], "offered": ["Jump to content", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Donate", "Create account", "Log in", "(Top)", "1 Etymology and spelling", "2 History", "2.1 Early history", "2.2 Bezzera's invention", "2.3 Achieving higher pressures", "3 Characteristics", "4 Nutrition", "5 Process", "5.1 Roasts", "5.2 Variables", "5.3 Machines", "6 Espresso-based drinks", "7 See also", "8 Notes", "9 References", "10 Works cited", "11 Further reading", "12 External links", "Afrikaans", "Aragonés", "العربية", "مصرى", "Asturianu", "Azərbaycanca", "Беларуская", "Български", "Bosanski", "Català", "Čeština", "Cymraeg", "Dansk", "Deutsch", "Ελληνικά", "Esperanto", "Español", "Eesti", "Euskara", "فارسی", "Suomi", "Français", "עברית"], "context": "inks such as drip coffee. [6] [7] Espresso serves as the base for other coffee drinks, including cappuccino , caffè latte , and americano . It can be made with various types of coffee beans and roast ", "shot": "00-click.png", "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/bridge-lightpanda/00-click.jpg", "path": "/wiki/Latte"}, {"t0": 2.23, "t1": 2.98, "op": "DONE", "op_p": 0.93, "controls": 250, "offered": ["Jump to content", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Donate", "Create account", "Log in", "(Top)", "1 Definition", "2 Etymology", "3 History", "4 See also", "5 References", "العربية", "Azərbaycanca", "Беларуская", "Български", "閩東語 / Mìng-dĕ̤ng-ngṳ̄", "Cebuano", "Čeština", "Cymraeg", "Dansk", "Deutsch", "Español", "Eesti", "فارسی", "Suomi", "Français", "Հայերեն", "Bahasa Indonesia", "Íslenska", "日本語", "Jawa", "한국어", "Latina", "Lombard · header", "ລາວ", "Lietuvių", "മലയാളം", "ꯃꯤꯇꯩ ꯂꯣꯟ", "Nederlands", "Norsk bokmål", "Papiamentu", "Polski", "Português", "Русский", "Simple English", "Slovenčina", "Српски / srpski"], "shot": "01-done.png", "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/bridge-lightpanda/01-done.jpg", "path": "/wiki/Latte"}], "fail_shot": {}}, "bridge-moli": {"ok": true, "status": "done", "secs": 7.18, "decisions": [{"t0": 0.85, "t1": 1.98, "op": "CLICK", "op_p": 0.53, "controls": 250, "target": "caffè latte", "target_p": 0.71, "top": [["caffè latte", 0.71], ["Caffè latte", 0.15000000000000002], ["6 Espresso-based drinks", 0.04]], "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Etymology and spelling", "2 History", "Toggle History subsection", "2.1 Early history", "2.2 Bezzera's invention", "2.3 Achieving higher pressures", "3 Characteristics", "4 Nutrition", "5 Process", "Toggle Process subsection", "5.1 Roasts", "5.2 Variables", "5.3 Machines", "6 Espresso-based drinks", "7 See also", "8 Notes", "9 References", "10 Works cited", "11 Further reading", "12 External links", "Contents · Contents", "Toggle the table of contents · Contents", "71 languages", "Afrikaans", "Aragonés", "العربية", "مصرى"], "context": "inks such as drip coffee. [6] [7] Espresso serves as the base for other coffee drinks, including cappuccino , caffè latte , and americano . It can be made with various types of coffee beans and roast ", "shot": "00-click.png", "read": 703, "url": "https://en.wikipedia.org/wiki/Latte", "focus": [404, 389], "thumb": "shots/bridge-moli/00-click.jpg", "path": "/wiki/Latte"}, {"t0": 6.37, "t1": 7.18, "op": "DONE", "op_p": 0.92, "controls": 250, "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Definition", "2 Etymology", "3 History", "4 See also", "5 References", "Contents · Contents", "Toggle the table of contents · Contents", "47 languages", "العربية", "Azərbaycanca", "Беларуская", "Български", "閩東語 / Mìng-dĕ̤ng-ngṳ̄", "Cebuano", "Čeština", "Cymraeg", "Dansk", "Deutsch", "Español", "Eesti", "فارسی", "Suomi", "Français", "Հայերեն", "Bahasa Indonesia", "Íslenska", "日本語"], "shot": "01-done.png", "read": 282, "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/bridge-moli/01-done.jpg", "path": "/wiki/Latte"}], "fail_shot": {}}, "bridge-obscura": {"ok": true, "status": "done", "secs": 9.66, "decisions": [{"t0": 1.55, "t1": 2.75, "op": "CLICK", "op_p": 0.97, "controls": 250, "target": "Latte", "target_p": 1.0, "top": [["Latte", 1.0], ["[ 17 ]", 0.0], ["\"Influence of Flow Rate, Particle Size, and Temperature on Espresso Extraction Kinetics\"", 0.0]], "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Etymology and spelling", "2 History", "Toggle History subsection", "2.1 Early history", "2.2 Bezzera's invention", "2.3 Achieving higher pressures", "3 Characteristics", "4 Nutrition", "5 Process", "Toggle Process subsection", "5.1 Roasts", "5.2 Variables", "5.3 Machines", "6 Espresso-based drinks", "7 See also", "8 Notes", "9 References", "10 Works cited", "11 Further reading", "12 External links", "Contents · Contents", "Toggle the table of contents · Contents", "71 languages", "Afrikaans", "Aragonés", "العربية", "مصرى"], "context": "uch as drip coffee. [6] [7] Espresso serves as the base for other coffee drinks, including cappuccino , caffè latte , and americano . It can be made with various types of coffee beans and roast levels", "shot_error": "RuntimeError: Unknown Page method: captureScreenshot", "read": 1219, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}, {"t0": 8.5, "t1": 9.66, "op": "DONE", "op_p": 0.98, "controls": 250, "offered": ["Jump to content", "Site · Site", "Main menu", "Move Main menu to sidebar", "Hide Main menu", "Main page", "Contents · Site", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file · Site", "Special pages", "Wikipedia The Free Encyclopedia", "Search · header", "Open Search Wikipedia · form", "Search · form", "Personal tools · Personal tools", "Appearance · Appearance", "Appearance · Appearance", "Donate", "Create account", "Log in", "Personal tools · Personal tools", "Site · Site", "Contents · Contents", "Move Contents to sidebar", "Hide Contents", "(Top)", "1 Definition", "2 Etymology", "3 History", "4 See also", "5 References", "Contents · Contents", "Toggle the table of contents · Contents", "47 languages", "العربية", "Azərbaycanca", "Беларуская", "Български", "閩東語 / Mìng-dĕ̤ng-ngṳ̄", "Cebuano", "Čeština", "Cymraeg", "Dansk", "Deutsch", "Español", "Eesti", "فارسی", "Suomi", "Français", "Հայերեն", "Bahasa Indonesia", "Íslenska", "日本語"], "shot_error": "RuntimeError: Unknown Page method: captureScreenshot", "read": 792, "url": "https://en.wikipedia.org/wiki/Latte", "path": "/wiki/Latte"}], "fail_shot": {}}, "position-chrome": {"ok": true, "status": "done", "secs": 6.73, "decisions": [{"t0": 0.01, "t1": 0.81, "op": "TYPE_TEXT", "op_p": 0.94, "controls": 48, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]", "Search Wikipedia"], "url": "https://en.wikipedia.org/wiki/Espresso", "path": "/wiki/Espresso"}, {"t0": 0.84, "t1": 1.25, "op": "TYPE_TEXT", "op_p": 0.93, "controls": 49, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "Play video", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]", "Search Wikipedia"], "shot": "00-fill.png", "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "focus": [475, 31], "thumb": "shots/position-chrome/00-fill.jpg", "path": "/wiki/Espresso"}, {"t0": 2.41, "t1": 2.89, "op": "CLICK", "op_p": 0.94, "controls": 49, "target": "Search", "target_p": 0.95, "top": [["Search", 0.95], ["Open Search Wikipedia", 0.03], ["Article", 0.02]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "Play video", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]", "Search Wikipedia"], "context": "Jump to content\nSearch\nDonate\nCreate account\nLog in\nContents\nhide\n(Top)\nEtymology and spelling\nHistory\nTog", "shot": "01-click.png", "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "thumb": "shots/position-chrome/01-click.jpg", "path": "/wiki/Espresso"}, {"t0": 3.77, "t1": 4.22, "op": "CLICK", "op_p": 0.94, "controls": 71, "target": "Latte   Beverage made with espresso coffee and milk", "target_p": 0.68, "top": [["Latte   Beverage made with espresso coffee and milk", 0.68], ["Latte   Beverage made with espresso coffee and milk", 0.29000000000000004], ["Search", 0.02]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Latte   Beverage made with espresso coff", "Latte   Beverage made with espresso coff", "Latter Day Saint movement   Religious mo", "Latter Day Saint movement   Religious mo", "Latter Day Church of Christ   Latter-Day", "Latter Day Church of Christ   Latter-Day", "Latter Rain (post–World War II movement)", "Latter Rain (post–World War II movement)", "Latter Day Saints in popular culture", "Latter Day Saints in popular culture", "Latter Day Saint polygamy in the late-19", "Latter Day Saint polygamy in the late-19", "Udo Lattek   German football player and ", "Udo Lattek   German football player and ", "Latter Days   2003 film by C. Jay Cox", "Latter Days   2003 film by C. Jay Cox", "Latte Line   Socioeconomic dividing line", "Latte Line   Socioeconomic dividing line", "Emmanuel Latte Lath   Ivorian footballer", "Emmanuel Latte Lath   Ivorian footballer", "Search for pages containing  Latte", "Search for pages containing  Latte", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia"], "shot": "02-click.png", "url": "https://en.wikipedia.org/wiki/Latte", "focus": [469, 78], "thumb": "shots/position-chrome/02-click.jpg", "path": "/wiki/Latte"}, {"t0": 5.75, "t1": 6.21, "op": "DONE", "op_p": 0.93, "controls": 42, "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Definition", "2 \n\t\t\t\t Etymology", "3 \n\t\t\t\t History", "4 \n\t\t\t\t See also", "5 \n\t\t\t\t References", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Latte (disambiguation)", "link", "microfoam", "latte art", "café", "Milk coffee", "Italy", "Espresso", "milk", "Wikimedia Commons logo", "Media :  Latte", "/ ˈ l ɑː t eɪ /", "[ 1 ]", "[ 2 ]", "[ kaffe(l)ˈlatte ]", "[ 3 ]", "[ 4 ]", "coffee drink", "espresso", "espresso", "[ 5 ]", "cappuccino", "Search Wikipedia"], "shot": "03-done.png", "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/position-chrome/03-done.jpg", "path": "/wiki/Latte"}, {"t0": 6.26, "t1": 6.73, "op": "DONE", "op_p": 0.91, "controls": 42, "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Definition", "2 \n\t\t\t\t Etymology", "3 \n\t\t\t\t History", "4 \n\t\t\t\t See also", "5 \n\t\t\t\t References", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Latte (disambiguation)", "link", "microfoam", "latte art", "café", "Milk coffee", "Italy", "Espresso", "milk", "Wikimedia Commons logo", "Media :  Latte", "/ ˈ l ɑː t eɪ /", "[ 1 ]", "[ 2 ]", "[ kaffe(l)ˈlatte ]", "[ 3 ]", "[ 4 ]", "coffee drink", "espresso", "espresso", "[ 5 ]", "cappuccino", "Search Wikipedia"], "shot": "04-done.png", "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/position-chrome/04-done.jpg", "path": "/wiki/Latte"}], "fail_shot": {}}, "position-lightpanda": {"ok": false, "status": "blocked", "secs": 0.85, "decisions": [{"t0": 0.09, "t1": 0.85, "op": "BLOCKED", "op_p": 0.78, "controls": 17, "offered": ["Jump to content", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Contact us", "Help", "Learn to edit", "Community portal", "Recent changes", "Upload file", "Special pages", "Wikipedia \n\t\t The Free Encyclopedia", "Move Main menu to sidebar", "Hide Main menu", "Main menu"], "shot": "00-blocked.png", "url": "https://en.wikipedia.org/wiki/Espresso", "thumb": "shots/position-lightpanda/00-blocked.jpg", "path": "/wiki/Espresso"}], "fail_shot": {}}, "position-moli": {"ok": true, "status": "done", "secs": 18.03, "decisions": [{"t0": 0.29, "t1": 1.1, "op": "TYPE_TEXT", "op_p": 0.92, "controls": 50, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "12 \n\t\t\t\t External links", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "Play video", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]", "Search Wikipedia"], "shot": "00-fill.png", "url": "https://en.wikipedia.org/wiki/Espresso", "focus": [467, 31], "thumb": "shots/position-moli/00-fill.jpg", "path": "/wiki/Espresso"}, {"t0": 3.85, "t1": 4.3, "op": "TYPE_TEXT", "op_p": 0.93, "controls": 50, "target": "Search Wikipedia", "target_p": 1.0, "top": [["Search Wikipedia", 1.0]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "12 \n\t\t\t\t External links", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "Play video", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]", "Search Wikipedia"], "shot": "01-fill.png", "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "focus": [469, 31], "thumb": "shots/position-moli/01-fill.jpg", "path": "/wiki/Espresso"}, {"t0": 9.36, "t1": 10.15, "op": "BLOCKED", "op_p": 0.41, "controls": 47, "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "12 \n\t\t\t\t External links", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link", "Ventimiglia", "Play video", "/ ɛ ˈ s p r ɛ s oʊ /", "Play audio", "ⓘ", "[ eˈsprɛsso ]", "coffee", "[ 1 ]", "Italy", "Espresso machines", "[ 2 ]"], "shot": "02-blocked.png", "url": "https://en.wikipedia.org/wiki/Espresso", "typed": "Latte", "thumb": "shots/position-moli/02-blocked.jpg", "path": "/wiki/Espresso"}, {"t0": 11.77, "t1": 12.24, "op": "CLICK", "op_p": 0.96, "controls": 72, "target": "Latte   Beverage made with espresso coffee and milk", "target_p": 0.65, "top": [["Latte   Beverage made with espresso coffee and milk", 0.65], ["Latte   Beverage made with espresso coffee and milk", 0.33], ["Search", 0.02]], "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Latte   Beverage made with espresso coff", "Latte   Beverage made with espresso coff", "Latter Day Saint movement   Religious mo", "Latter Day Saint movement   Religious mo", "Latter Day Church of Christ   Latter-Day", "Latter Day Church of Christ   Latter-Day", "Latter Rain (post–World War II movement)", "Latter Rain (post–World War II movement)", "Latter Day Saints in popular culture", "Latter Day Saints in popular culture", "Latter Day Saint polygamy in the late-19", "Latter Day Saint polygamy in the late-19", "Udo Lattek   German football player and ", "Udo Lattek   German football player and ", "Latter Days   2003 film by C. Jay Cox", "Latter Days   2003 film by C. Jay Cox", "Latte Line   Socioeconomic dividing line", "Latte Line   Socioeconomic dividing line", "Emmanuel Latte Lath   Ivorian footballer", "Emmanuel Latte Lath   Ivorian footballer", "Search for pages containing  Latte", "Search for pages containing  Latte", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Etymology and spelling", "2 \n\t\t\t\t History", "Toggle History subsection", "2.1 \n\t\t\t\t\t Early history", "2.2 \n\t\t\t\t\t Bezzera's invention", "2.3 \n\t\t\t\t\t Achieving higher pressures", "3 \n\t\t\t\t Characteristics", "4 \n\t\t\t\t Nutrition", "5 \n\t\t\t\t Process", "Toggle Process subsection", "5.1 \n\t\t\t\t\t Roasts", "5.2 \n\t\t\t\t\t Variables", "5.3 \n\t\t\t\t\t Machines", "6 \n\t\t\t\t Espresso-based drinks", "7 \n\t\t\t\t See also", "8 \n\t\t\t\t Notes", "9 \n\t\t\t\t References", "10 \n\t\t\t\t Works cited", "11 \n\t\t\t\t Further reading", "12 \n\t\t\t\t External links", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Nespresso", "L'Espresso", "Espresso (disambiguation)", "link"], "shot": "03-click.png", "url": "https://en.wikipedia.org/wiki/Latte", "focus": [464, 78], "thumb": "shots/position-moli/03-click.jpg", "path": "/wiki/Latte"}, {"t0": 16.18, "t1": 16.6, "op": "DONE", "op_p": 0.93, "controls": 42, "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Definition", "2 \n\t\t\t\t Etymology", "3 \n\t\t\t\t History", "4 \n\t\t\t\t See also", "5 \n\t\t\t\t References", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Latte (disambiguation)", "link", "microfoam", "latte art", "café", "Milk coffee", "Italy", "Espresso", "milk", "Wikimedia Commons logo", "Media :  Latte", "/ ˈ l ɑː t eɪ /", "[ 1 ]", "[ 2 ]", "[ kaffe(l)ˈlatte ]", "[ 3 ]", "[ 4 ]", "coffee drink", "espresso", "espresso", "[ 5 ]", "cappuccino", "Search Wikipedia"], "shot": "04-done.png", "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/position-moli/04-done.jpg", "path": "/wiki/Latte"}, {"t0": 17.55, "t1": 18.03, "op": "DONE", "op_p": 0.93, "controls": 42, "offered": ["Wikipedia \n\t\t The Free Encyclopedia", "Open Search Wikipedia", "Search", "Donate", "Create account", "Log in", "Hide Contents", "(Top)", "1 \n\t\t\t\t Definition", "2 \n\t\t\t\t Etymology", "3 \n\t\t\t\t History", "4 \n\t\t\t\t See also", "5 \n\t\t\t\t References", "Article", "Talk", "Read", "Edit", "View history", "Hide Appearance", "Latte (disambiguation)", "link", "microfoam", "latte art", "café", "Milk coffee", "Italy", "Espresso", "milk", "Wikimedia Commons logo", "Media :  Latte", "/ ˈ l ɑː t eɪ /", "[ 1 ]", "[ 2 ]", "[ kaffe(l)ˈlatte ]", "[ 3 ]", "[ 4 ]", "coffee drink", "espresso", "espresso", "[ 5 ]", "cappuccino", "Search Wikipedia"], "shot": "05-done.png", "url": "https://en.wikipedia.org/wiki/Latte", "thumb": "shots/position-moli/05-done.jpg", "path": "/wiki/Latte"}], "fail_shot": {}}, "position-obscura": {"ok": false, "status": "error: StalePage: Document is navigating", "secs": 1.44, "decisions": [], "fail_shot": {"shot_error": "RuntimeError: Unknown Page method: captureScreenshot"}}};
+const BROWSERS = [['chrome', 'Chrome', 'draws pages'], ['moli', 'Moli', 'draws on demand'],
+                  ['lightpanda', 'Lightpanda', 'never draws'], ['obscura', 'Obscura', 'never draws']];
+const ROWS = [['position', 'Position-based reader', 'asks the layout engine what is on screen', 'pos'],
+              ['bridge', 'Jev Browser Bridge', 'reads the document, acts on elements', 'bridge']];
 const END = Math.max(...Object.values(TRACES).map(t => t.secs)) + 0.6;
-const HOLD = 3.0;
-const TOTAL = END + HOLD;
+const TOTAL = END + 3.5;
+const NOTE = 'Recorded runs, replayed on one clock. Numbers, choices and probabilities are Jev’s own answers; raw traces are linked in each panel.';
 
-const grid = document.getElementById('grid');
-grid.innerHTML = '<div></div>' + BROWSERS.map(([, name, kind]) =>
-  `<div class="colhead"><b>${name}</b><br><span class="kind"><i>${kind}</i></span></div>`).join('')
-  + ROWS.map(([arm, title, sub, cls]) =>
-    `<div class="rowhead ${cls}"><b>${title}</b><span>${sub}</span></div>`
-    + BROWSERS.map(([b]) => `<div class="cell ${cls}" id="c-${arm}-${b}"></div>`).join('')).join('');
+document.getElementById('grid').innerHTML = '<div></div>'
+  + BROWSERS.map(([, n, k]) => `<div class="colhead"><b>${n}</b><i>${k}</i></div>`).join('')
+  + ROWS.map(([arm, t, s, c]) => `<div class="rowhead ${c}"><b>${t}</b><span>${s}</span></div>`
+    + BROWSERS.map(([b]) => `<div class="cell ${c}" id="c-${arm}-${b}"></div>`).join('')).join('');
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
 const pct = p => p == null ? '' : `${Math.round(p * 100)}%`;
+const shortName = s => esc(String(s || '').split(' · ')[0].slice(0, 24));
 
-function cellHTML(trace, t) {
-  const ds = trace.decisions;
-  const answered = ds.filter(d => d.t1 <= t);
-  const last = answered[answered.length - 1];
-  const pending = ds.find(d => d.t0 <= t && d.t1 > t);
-  const finished = t >= trace.secs;
-  let pill = ['Reading the page…', ''];
-  if (pending) pill = ['Jev deciding…', ''];
-  else if (last) pill = [`Step ${answered.length} done`, ''];
-  let banner = '';
-  let cls = '';
+function visual(key, tr, answered, t) {
+  const withShot = answered.filter(d => d.thumb);
+  const errored = answered.find(d => d.shot_error) || (tr.fail_shot?.shot_error && t >= tr.secs ? tr.fail_shot : null);
+  if (withShot.length) {
+    const d = withShot[withShot.length - 1];
+    const src = key.endsWith('lightpanda') ? 'Lightpanda’s own screenshot' : 'screenshot';
+    return `<img src="${d.thumb}" alt=""><span class="src">${src}</span>`;
+  }
+  if (errored) {
+    const err = (errored.shot_error || '').replace(/^RuntimeError:\s*/, '');
+    const extra = !tr.decisions.length && t >= tr.secs
+      ? `<br><span class="c">› read the page</span><br><span class="e">✗ ${esc(tr.status.replace(/^error:\s*(StalePage:\s*)?/, ''))}</span>` : '';
+    return `<div class="term"><span class="c">› Page.captureScreenshot</span><br><span class="e">✗ ${esc(err)}</span>${extra}</div><span class="src">no picture</span>`;
+  }
+  return '<div class="wait">loading the page…</div>';
+}
+
+function cell(key, tr, t) {
+  const ds = tr.decisions, answered = ds.filter(d => d.t1 <= t), last = answered[answered.length - 1];
+  const pending = ds.find(d => d.t0 <= t && d.t1 > t), finished = t >= tr.secs, first = answered[0];
+  let pill = [pending ? 'Jev deciding…' : last ? `step ${answered.length}` : 'reading the page…', ''], cls = '', banner = '';
   if (finished) {
-    if (trace.ok) {
-      pill = ['✓ Opened Latte', 'ok']; cls = 'win';
-      banner = `<div class="banner ok">✓ Success <small>${answered.length} decisions · ${trace.secs.toFixed(1)} s</small></div>`;
-    } else if (!ds.length) {
-      pill = ['✗ Page never readable', 'bad']; cls = 'lose';
-      banner = `<div class="banner bad">✗ Could not read the page <small>“Document is navigating”</small></div>`;
-    } else {
-      pill = ['✗ Gave up', 'bad']; cls = 'lose';
-      banner = `<div class="banner bad">✗ Blocked <small>no way forward among the ${answered[0]?.read ?? answered[0]?.controls} controls it found</small></div>`;
-    }
+    if (tr.ok) { pill = ['✓ opened Latte', 'ok']; cls = 'win';
+      banner = `<div class="banner ok">✓ Success<small>${ds.length} decisions · ${tr.secs.toFixed(1)} s</small></div>`; }
+    else if (!ds.length) { pill = ['✗ page never readable', 'bad']; cls = 'lose';
+      banner = `<div class="banner bad">✗ Could not read the page<small>no decision was ever made</small></div>`; }
+    else { pill = ['✗ gave up', 'bad']; cls = 'lose';
+      banner = `<div class="banner bad">✗ Blocked<small>none of its ${first.read ?? first.controls} controls leads to Latte</small></div>`; }
   }
-  const shown = last;
-  // The number that matters is what each reader found on the starting page.
-  const first = answered[0];
-  const n = first ? (first.read ?? first.controls) : (finished && !ds.length ? '0' : '…');
-  let act = '<span class="u" style="color:var(--ink3)">waiting for the first decision</span>';
-  let bars = '';
-  if (shown) {
-    let what = '';
-    if (shown.op === 'TYPE_TEXT') what = shown.typed ? `<span class="tgt">“${esc(shown.typed)}”</span> into ${esc(shown.target)}` : `into <span class="tgt">${esc(shown.target)}</span>`;
-    else if (shown.target) what = `<span class="tgt">${esc(shown.target)}</span>`;
-    else if (shown.op === 'DONE') what = 'goal reached';
-    else if (shown.op === 'BLOCKED') what = 'no offered action can make progress';
-    act = `<span class="op ${shown.op}">${shown.op}</span>${what}`;
-    if (shown.top && shown.top.length) {
-      bars = '<div class="bars">' + shown.top.slice(0, 3).map(([name, p], i) =>
-        `<div class="bar ${i === 0 && name === shown.target ? 'chosen' : ''}"><div class="name">${esc(name)}</div><div class="p">${pct(p)}</div><div class="track"><div class="fill" style="width:${Math.max(2, p * 100)}%"></div></div></div>`).join('') + '</div>';
-    } else if (shown.op_p != null) {
-      bars = `<div class="bars"><div class="bar chosen"><div class="name">${shown.op}</div><div class="p">${pct(shown.op_p)}</div><div class="track"><div class="fill" style="width:${shown.op_p * 100}%"></div></div></div></div>`;
-    }
-  }
+  const n = first ? (first.read ?? first.controls) : (finished && !ds.length ? 0 : '…');
+  let act = '', bars = '';
   if (finished && ds.length) {
-    // The whole route, so the two ways of getting there can be compared.
-    const short = d => d.op === 'TYPE_TEXT' ? (d.typed ? `“${esc(d.typed)}”` : '')
-      : d.target ? esc(d.target.split(' · ')[0].slice(0, 22)) : '';
     const route = ds.filter((d, i) => !(d.op === 'DONE' && ds[i - 1]?.op === 'DONE'));
-    act = '<div class="route">' + route.map(d =>
-      `<span class="step"><span class="op ${d.op}">${d.op === 'TYPE_TEXT' ? 'TYPE' : d.op}</span>${short(d)}</span>`)
-      .join('<span class="arrow">→</span>') + '</div>';
-    bars = '';
+    act = '<div class="route">' + route.map(d => `<span><span class="op ${d.op === 'TYPE_TEXT' ? 'TYPE' : d.op}">${d.op === 'TYPE_TEXT' ? 'TYPE' : d.op}</span>${d.op === 'TYPE_TEXT' ? (d.typed ? `“${esc(d.typed)}”` : '') : shortName(d.target)}</span>`).join('<span class="arrow">→</span>') + '</div>';
+  } else if (last) {
+    const what = last.op === 'TYPE_TEXT' ? (last.typed ? `<span class="tgt">“${esc(last.typed)}”</span> into ${shortName(last.target)}` : `into <span class="tgt">${shortName(last.target)}</span>`)
+      : last.target ? `<span class="tgt">${esc(last.target)}</span>` : last.op === 'DONE' ? 'goal reached' : last.op === 'BLOCKED' ? 'nothing it can do' : '';
+    act = `<span class="op ${last.op}">${last.op}</span>${what}`;
+    bars = (last.top || []).slice(0, 2).map(([name, p], i) => `<div class="bar ${i === 0 ? 'chosen' : ''}"><div class="name">${esc(name)}</div><div class="p">${pct(p)}</div><div class="track"><div class="fill" style="width:${Math.max(2, p * 100)}%"></div></div></div>`).join('');
   }
-  const path = (shown && shown.path) || (ds.length || !finished ? '/wiki/Espresso' : '—');
-  const arrived = path.includes('/wiki/Latte');
-  return [cls, `<div class="pill ${pill[1]}">${pill[0]}</div>
+  // What the reader actually got, for the browsers that give no picture.
+  let saw = '';
+  const noPicture = key.endsWith('obscura') || key.endsWith('lightpanda');
+  if (noPicture && first) {
+    if (first.op === 'BLOCKED' && first.offered?.length)
+      saw = `<div class="saw"><b>All it found:</b> ${first.offered.map(o => esc(o.replace(/\s+/g, ' ').slice(0, 22))).join(' · ')}</div>`;
+    else if (first.context) {
+      const c = esc(first.context.replace(/\s+/g, ' ').trim()), tg = esc(first.target.split(' · ')[0]);
+      const i = c.toLowerCase().indexOf(tg.toLowerCase());
+      const s = i < 0 ? c : '…' + c.slice(Math.max(0, i - 70), i) + `<mark>${c.slice(i, i + tg.length)}</mark>` + c.slice(i + tg.length, i + tg.length + 40) + '…';
+      saw = `<div class="saw"><b>Read from the document:</b> ${s}</div>`;
+    }
+  }
+  const path = (last && last.path) || (ds.length || !finished ? '/wiki/Espresso' : '—');
+  return [cls, `<div class="top"><span class="pill ${pill[1]}">${pill[0]}</span><span class="time">${Math.min(t, tr.secs).toFixed(1)} s</span></div>
+    <div class="visual">${visual(key, tr, answered, t)}${banner}</div>
     <div class="count"><span class="n">${n}</span><span class="u">controls found<br>on the start page</span></div>
-    <div class="act">${act}</div>${bars}
-    <div class="url"><span class="path ${arrived ? 'arrived' : ''}">${esc(path)}</span><span>${Math.min(t, trace.secs).toFixed(1)} s</span></div>${banner}`];
+    <div class="act">${act}</div>${bars}${saw}
+    <div class="foot"><span class="${path.includes('/wiki/Latte') ? 'arrived' : ''}">${esc(path)}</span><a href="traces/${key}.json" target="_blank">raw trace ↗</a></div>`];
 }
 
 function render(t) {
   const tc = Math.min(t, END);
   document.getElementById('clock').textContent = `${tc.toFixed(1)} s`;
   for (const [arm] of ROWS) for (const [b] of BROWSERS) {
-    const el = document.getElementById(`c-${arm}-${b}`);
-    const [cls, html] = cellHTML(TRACES[`${arm}-${b}`], tc);
-    el.innerHTML = html;
-    el.classList.toggle('win', cls === 'win');
-    el.classList.toggle('lose', cls === 'lose');
+    const key = `${arm}-${b}`, el = document.getElementById(`c-${key}`), [cls, html] = cell(key, TRACES[key], tc);
+    el.innerHTML = html; el.classList.toggle('win', cls === 'win'); el.classList.toggle('lose', cls === 'lose');
   }
-  const note = document.getElementById('note');
-  const over = t >= END - 0.3;
+  const note = document.getElementById('note'), over = t >= END - 0.3;
   note.classList.toggle('final', over);
-  note.innerHTML = over
-    ? '<span class="g">Chrome, Moli:</span> both readers finish. <span class="r">Lightpanda, Obscura:</span> only Jev Browser Bridge does.'
-    : 'Recorded runs · controls = interactive elements each reader found';
+  note.innerHTML = over ? '<span class="g">Chrome, Moli:</span> both readers finish. <span class="r">Lightpanda, Obscura:</span> only Jev Browser Bridge does.' : NOTE;
   const f = Math.min(1, tc / END) * 100;
   document.getElementById('tdone').style.width = f + '%';
   document.getElementById('tknob').style.left = f + '%';
 }
-window.render = render;
-window.TOTAL = TOTAL;
+window.render = render; window.TOTAL = TOTAL;
 
 const params = new URLSearchParams(location.search);
-if (params.has('capture')) {
-  document.body.classList.add('capture');
-  render(Number(params.get('t') || 0));
-} else {
+if (params.has('capture')) { document.body.classList.add('capture'); render(Number(params.get('t') || 0)); }
+else {
   let t = 0, playing = true, last = performance.now();
-  const btn = document.getElementById('play');
-  const fit = () => {
-    const s = Math.min(1, (innerWidth - 32) / 1200);
-    const stage = document.getElementById('stage');
-    stage.style.transform = `scale(${s})`;
-    stage.style.height = `${800 * s}px`;
-  };
+  const btn = document.getElementById('play'), stage = document.getElementById('stage');
+  const fit = () => { const s = Math.min(1, (innerWidth - 32) / 1400); stage.style.transform = `scale(${s})`; stage.style.height = `${1000 * s}px`; };
   addEventListener('resize', fit); fit();
   btn.onclick = () => { playing = !playing; btn.textContent = playing ? '❚❚ Pause' : '▶ Play'; if (playing && t >= TOTAL) t = 0; };
   document.getElementById('restart').onclick = () => { t = 0; playing = true; btn.textContent = '❚❚ Pause'; };
-  document.getElementById('timeline').onclick = e => {
-    const r = e.currentTarget.getBoundingClientRect();
-    t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * END;
-  };
-  const tick = now => {
-    if (playing) { t += (now - last) / 1000; if (t >= TOTAL) t = 0; }
-    last = now; render(t); requestAnimationFrame(tick);
-  };
+  document.getElementById('timeline').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * END; };
+  const tick = now => { if (playing) { t += (now - last) / 1000; if (t >= TOTAL) t = 0; } last = now; render(t); requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
 }
 </script>
