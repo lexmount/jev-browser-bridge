@@ -30,11 +30,13 @@ If it speaks CDP, it runs Jev.
 | --- | --- | :-: | :-: | :-: |
 | Chrome | Local | Yes | **106/172** (62%) | 54/172 (31%) |
 | [Browserbase](https://www.browserbase.com) | Cloud | Yes | **112/172** (65%) | — |
+| Cloudflare Browser Run (Chromium) | Cloud | Yes | **102/172** (59%) | — |
 | **[Moli](https://browser.lexmount.com)** (Lexmount) | Cloud | On demand | **105/172** (61%) | 42/172 (24%) |
+| [Cloudflare Kitesurf](https://developers.cloudflare.com/browser-run/kitesurf/) | Cloud | Own engine | **112/172** (65%) | — |
 | [Lightpanda](https://lightpanda.io) | Local | No | **110/172** (64%) | 52/172 (30%) |
 | [Obscura](https://github.com/h4ckf0r0day/obscura) | Local | No | **30/172** (17%) | 0/172 (0%) |
 
-The bridge scores the same on a browser that draws pages, one that draws them on demand and one that never does. Obscura is lower because its script engine does not run many of the task pages at all: 18 of the 86 never start. The 44 MiniWoB++ tasks left out need a pointer position, a drag, a drawing, a colour or a password — see [`benchmarks/miniwob/excluded.tsv`](benchmarks/miniwob/excluded.tsv). Run it yourself with [`benchmarks/miniwob/run.py`](benchmarks/miniwob/run.py).
+The bridge scores the same on a browser that draws pages, one that draws them on demand and one that never does. Obscura is lower because its script engine does not run many of the task pages at all: 18 of the 86 never start. Kitesurf has no `Math.seedrandom`, so its episodes are fresh problems from the same tasks rather than the seeded ones. The 44 MiniWoB++ tasks left out need a pointer position, a drag, a drawing, a colour or a password — see [`benchmarks/miniwob/excluded.tsv`](benchmarks/miniwob/excluded.tsv). Run it yourself with [`benchmarks/miniwob/run.py`](benchmarks/miniwob/run.py).
 
 Also connects and completes live-site tasks: chrome-headless-shell, Playwright Chromium, browserless, Steel, chromedp, Kernel and Selenium Grid.
 
